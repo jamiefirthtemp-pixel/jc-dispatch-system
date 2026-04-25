@@ -1,4 +1,14 @@
-const { Client, GatewayIntentBits, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const {
+Client,
+GatewayIntentBits,
+Events,
+REST,
+Routes,
+SlashCommandBuilder,
+ActionRowBuilder,
+ButtonBuilder,
+ButtonStyle
+} = require('discord.js');
 
 const client = new Client({
 intents: [GatewayIntentBits.Guilds]
@@ -24,9 +34,7 @@ function increaseStoreStock(storeName) {
 
 const store = stores.find(s => s.name === storeName);
 
-if (!store) {
-return;
-}
+if (!store) return;
 
 store.stock += 20;
 
@@ -48,82 +56,137 @@ if (store.stock < 0) {
 
 });
 
-console.log('Stock depleted');
+}
+
+client.once(Events.ClientReady, async (readyClient) => {
+
+console.log('Bot online: ' + readyClient.user.tag);
+
+const commands = [
+
+new SlashCommandBuilder()
+  .setName('job')
+  .setDescription('Generate a delivery job'),
+
+new SlashCommandBuilder()
+  .setName('stock')
+  .setDescription('View store stock levels'),
+
+new SlashCommandBuilder()
+  .setName('deplete')
+  .setDescription('Manually deplete all stock')
+
+].map(command => command.toJSON());
+
+const rest = new REST({ version: '10' })
+.setToken(process.env.TOKEN);
+
+try {
+
+await rest.put(
+  Routes.applicationCommands(readyClient.user.id),
+  { body: commands }
+);
+
+console.log('Commands registered');
+
+} catch (error) {
+
+console.log(error);
 
 }
 
-setInterval(() => {
-depleteStock();
-}, 86400000);
-
-client.once(Events.ClientReady, (readyClient) => {
-console.log('Bot online: ' + readyClient.user.tag);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
 
-if (!interaction.isChatInputCommand()) {
+if (!interaction.isChatInputCommand() && !interaction.isButton()) {
 return;
 }
 
-if (interaction.commandName === 'stock') {
+/* JOB COMMAND */
 
-let message = '📦 STORE STOCK LEVELS\n\n';
-
-stores.forEach(store => {
-  message += store.name + ': ' + store.stock + '%\n';
-});
-
-await interaction.reply({
-  content: message,
-  ephemeral: true
-});
-
-return;
-
-}
+if (interaction.isChatInputCommand()) {
 
 if (interaction.commandName === 'job') {
 
-if (activeJobs[interaction.user.id]) {
+  if (activeJobs[interaction.user.id]) {
+
+    await interaction.reply({
+      content: 'You already have an active job.',
+      ephemeral: true
+    });
+
+    return;
+  }
+
+  const store = getLowestStockStore();
+
+  const jobId = generateJobId();
+
+  activeJobs[interaction.user.id] = {
+    jobId: jobId,
+    store: store.name
+  };
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('complete_delivery')
+        .setLabel('COMPLETE DELIVERY')
+        .setStyle(ButtonStyle.Success)
+    );
 
   await interaction.reply({
-    content: 'You already have an active job.',
+    content:
+      '🚛 JOB GENERATED\n\n' +
+      'Job ID: ' + jobId + '\n' +
+      'Store: ' + store.name + '\n' +
+      'Stock: ' + store.stock + '%',
+    components: [row]
+  });
+
+  return;
+
+}
+
+/* STOCK COMMAND */
+
+if (interaction.commandName === 'stock') {
+
+  let message = '📦 STORE STOCK LEVELS\n\n';
+
+  stores.forEach(store => {
+    message += store.name + ': ' + store.stock + '%\n';
+  });
+
+  await interaction.reply({
+    content: message,
     ephemeral: true
   });
 
   return;
-}
-
-const store = getLowestStockStore();
-
-const jobId = generateJobId();
-
-activeJobs[interaction.user.id] = {
-  jobId: jobId,
-  store: store.name
-};
-
-const row = new ActionRowBuilder()
-  .addComponents(
-    new ButtonBuilder()
-      .setCustomId('complete_delivery')
-      .setLabel('COMPLETE DELIVERY')
-      .setStyle(ButtonStyle.Success)
-  );
-
-await interaction.reply({
-  content:
-    '🚛 JOB GENERATED\n\n' +
-    'Job ID: ' + jobId + '\n' +
-    'Store: ' + store.name + '\n' +
-    'Stock: ' + store.stock + '%',
-  components: [row]
-});
-
-return;
 
 }
+
+/* DEPLETE COMMAND */
+
+if (interaction.commandName === 'deplete') {
+
+  depleteStock();
+
+  await interaction.reply({
+    content: '⚠️ Stock manually depleted.',
+    ephemeral: true
+  });
+
+  return;
+
+}
+
+}
+
+/* COMPLETE DELIVERY BUTTON */
 
 if (interaction.isButton()) {
 
@@ -131,16 +194,16 @@ if (interaction.customId === 'complete_delivery') {
 
   const job = activeJobs[interaction.user.id];
 
-  if (!job) {
-    return;
-  }
+  if (!job) return;
 
   increaseStoreStock(job.store);
 
   delete activeJobs[interaction.user.id];
 
   await interaction.update({
-    content: '✅ DELIVERY COMPLETED\n\nStock increased for: ' + job.store,
+    content:
+      '✅ DELIVERY COMPLETED\n\n' +
+      'Stock increased for: ' + job.store,
     components: []
   });
 
