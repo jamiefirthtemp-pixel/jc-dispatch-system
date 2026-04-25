@@ -32,7 +32,6 @@ return;
 
 if (interaction.commandName === 'job') {
 
-```
 if (activeJobs[interaction.user.id]) {
 
   await interaction.reply({
@@ -59,7 +58,6 @@ await interaction.reply({
     'Store: ' + store.name + '\n' +
     'Stock: ' + store.stock + '%'
 });
-```
 
 }
 
