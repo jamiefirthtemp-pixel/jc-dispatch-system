@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Events } = require('discord.js');
+const { Client, GatewayIntentBits, Events, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 const client = new Client({
 intents: [GatewayIntentBits.Guilds]
@@ -26,38 +26,66 @@ console.log('Bot online: ' + readyClient.user.tag);
 
 client.on(Events.InteractionCreate, async (interaction) => {
 
-if (!interaction.isChatInputCommand()) {
-return;
-}
+if (interaction.isChatInputCommand()) {
 
 if (interaction.commandName === 'job') {
 
-if (activeJobs[interaction.user.id]) {
+  if (activeJobs[interaction.user.id]) {
+
+    await interaction.reply({
+      content: 'You already have an active job.',
+      ephemeral: true
+    });
+
+    return;
+  }
+
+  const store = getLowestStockStore();
+
+  const jobId = generateJobId();
+
+  activeJobs[interaction.user.id] = {
+    jobId: jobId,
+    store: store.name
+  };
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('complete_delivery')
+        .setLabel('COMPLETE DELIVERY')
+        .setStyle(ButtonStyle.Success)
+    );
 
   await interaction.reply({
-    content: 'You already have an active job.',
-    ephemeral: true
+    content:
+      '🚛 JOB GENERATED\n\n' +
+      'Job ID: ' + jobId + '\n' +
+      'Store: ' + store.name + '\n' +
+      'Stock: ' + store.stock + '%',
+    components: [row]
   });
 
   return;
+
 }
 
-const store = getLowestStockStore();
+}
 
-const jobId = generateJobId();
+if (interaction.isButton()) {
 
-activeJobs[interaction.user.id] = {
-  jobId: jobId,
-  store: store.name
-};
+if (interaction.customId === 'complete_delivery') {
 
-await interaction.reply({
-  content:
-    '🚛 JOB GENERATED\n\n' +
-    'Job ID: ' + jobId + '\n' +
-    'Store: ' + store.name + '\n' +
-    'Stock: ' + store.stock + '%'
-});
+  delete activeJobs[interaction.user.id];
+
+  await interaction.update({
+    content: '✅ DELIVERY COMPLETED',
+    components: []
+  });
+
+  return;
+
+}
 
 }
 
