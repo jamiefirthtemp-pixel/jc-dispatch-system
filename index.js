@@ -20,6 +20,44 @@ function generateJobId() {
 return 'J-' + Math.floor(Math.random() * 100000);
 }
 
+function increaseStoreStock(storeName) {
+
+const store = stores.find(s => s.name === storeName);
+
+if (!store) {
+return;
+}
+
+store.stock += 20;
+
+if (store.stock > 100) {
+store.stock = 100;
+}
+
+}
+
+function depleteStock() {
+
+stores.forEach(store => {
+
+store.stock -= 10;
+
+if (store.stock < 0) {
+  store.stock = 0;
+}
+
+});
+
+console.log('Stock depleted');
+
+}
+
+/* STOCK DEPLETION EVERY 24 HOURS */
+
+setInterval(() => {
+depleteStock();
+}, 86400000);
+
 client.once(Events.ClientReady, (readyClient) => {
 console.log('Bot online: ' + readyClient.user.tag);
 });
@@ -70,16 +108,41 @@ if (interaction.commandName === 'job') {
 
 }
 
+if (interaction.commandName === 'stock') {
+
+  let message = '📦 STORE STOCK LEVELS\n\n';
+
+  stores.forEach(store => {
+    message += store.name + ': ' + store.stock + '%\n';
+  });
+
+  await interaction.reply({
+    content: message,
+    ephemeral: true
+  });
+
+  return;
+
+}
+
 }
 
 if (interaction.isButton()) {
 
 if (interaction.customId === 'complete_delivery') {
 
+  const job = activeJobs[interaction.user.id];
+
+  if (!job) {
+    return;
+  }
+
+  increaseStoreStock(job.store);
+
   delete activeJobs[interaction.user.id];
 
   await interaction.update({
-    content: '✅ DELIVERY COMPLETED',
+    content: '✅ DELIVERY COMPLETED\n\nStock increased for: ' + job.store,
     components: []
   });
 
