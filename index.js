@@ -52,8 +52,6 @@ console.log('Stock depleted');
 
 }
 
-/* STOCK DEPLETION EVERY 24 HOURS */
-
 setInterval(() => {
 depleteStock();
 }, 86400000);
@@ -64,66 +62,66 @@ console.log('Bot online: ' + readyClient.user.tag);
 
 client.on(Events.InteractionCreate, async (interaction) => {
 
-if (interaction.isChatInputCommand()) {
-
-if (interaction.commandName === 'job') {
-
-  if (activeJobs[interaction.user.id]) {
-
-    await interaction.reply({
-      content: 'You already have an active job.',
-      ephemeral: true
-    });
-
-    return;
-  }
-
-  const store = getLowestStockStore();
-
-  const jobId = generateJobId();
-
-  activeJobs[interaction.user.id] = {
-    jobId: jobId,
-    store: store.name
-  };
-
-  const row = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('complete_delivery')
-        .setLabel('COMPLETE DELIVERY')
-        .setStyle(ButtonStyle.Success)
-    );
-
-  await interaction.reply({
-    content:
-      '🚛 JOB GENERATED\n\n' +
-      'Job ID: ' + jobId + '\n' +
-      'Store: ' + store.name + '\n' +
-      'Stock: ' + store.stock + '%',
-    components: [row]
-  });
-
-  return;
-
+if (!interaction.isChatInputCommand()) {
+return;
 }
 
 if (interaction.commandName === 'stock') {
 
-  let message = '📦 STORE STOCK LEVELS\n\n';
+let message = '📦 STORE STOCK LEVELS\n\n';
 
-  stores.forEach(store => {
-    message += store.name + ': ' + store.stock + '%\n';
-  });
+stores.forEach(store => {
+  message += store.name + ': ' + store.stock + '%\n';
+});
+
+await interaction.reply({
+  content: message,
+  ephemeral: true
+});
+
+return;
+
+}
+
+if (interaction.commandName === 'job') {
+
+if (activeJobs[interaction.user.id]) {
 
   await interaction.reply({
-    content: message,
+    content: 'You already have an active job.',
     ephemeral: true
   });
 
   return;
-
 }
+
+const store = getLowestStockStore();
+
+const jobId = generateJobId();
+
+activeJobs[interaction.user.id] = {
+  jobId: jobId,
+  store: store.name
+};
+
+const row = new ActionRowBuilder()
+  .addComponents(
+    new ButtonBuilder()
+      .setCustomId('complete_delivery')
+      .setLabel('COMPLETE DELIVERY')
+      .setStyle(ButtonStyle.Success)
+  );
+
+await interaction.reply({
+  content:
+    '🚛 JOB GENERATED\n\n' +
+    'Job ID: ' + jobId + '\n' +
+    'Store: ' + store.name + '\n' +
+    'Stock: ' + store.stock + '%',
+  components: [row]
+});
+
+return;
 
 }
 
