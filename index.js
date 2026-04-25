@@ -1,4 +1,4 @@
-```js
+```javascript
 require('dotenv').config();
 
 const {
@@ -30,7 +30,7 @@ const CHANNELS = {
 };
 
 /* =========================
-   STORES
+   STORE DATA
 ========================= */
 
 const stores = [
@@ -81,7 +81,7 @@ const stores = [
 ];
 
 /* =========================
-   DATA
+   SYSTEM DATA
 ========================= */
 
 const activeDrivers = {};
@@ -98,12 +98,12 @@ function getStatus(stock) {
   return "🟢 HIGH";
 }
 
-function randomIncrease() {
-  return Math.floor(Math.random() * 21) + 15;
-}
-
 function generateJobId() {
   return "J-" + Math.floor(Math.random() * 100000);
+}
+
+function randomIncrease() {
+  return Math.floor(Math.random() * 21) + 15;
 }
 
 function getPriorityStore() {
@@ -127,7 +127,7 @@ setInterval(() => {
 
   }
 
-  console.log("10% stock depletion complete");
+  console.log("10 percent stock depletion complete");
 
 }, 86400000);
 
@@ -146,8 +146,8 @@ async function updateDispatchConsole() {
     const activeCount = jobs.filter(j => j.status === "ACTIVE").length;
     const lowStores = stores.filter(s => s.stock <= 30).length;
 
-    const content = `
-JC LOGISTICS // DISPATCH CONTROL
+    const content =
+`JC LOGISTICS // DISPATCH CONTROL
 
 ACTIVE JOBS: ${activeCount}
 
@@ -207,8 +207,8 @@ async function updateStockBoard() {
 
     }
 
-    const content = `
-JC LOGISTICS // STOCK BOARD
+    const content =
+`JC LOGISTICS // STOCK BOARD
 
 🔴 LOW STOCK
 ${low || "NONE"}
@@ -252,11 +252,8 @@ async function updateDriverStats() {
 
     for (const id in driverStats) {
 
-      content += `
-${driverStats[id].name}
-Jobs Completed: ${driverStats[id].completed}
-
-`;
+      content += `${driverStats[id].name}\n`;
+      content += `Jobs Completed: ${driverStats[id].completed}\n\n`;
 
     }
 
@@ -292,9 +289,9 @@ client.once('ready', async () => {
 
     new SlashCommandBuilder()
       .setName('deplete')
-      .setDescription('Manually deplete random store')
+      .setDescription('Manually deplete stock')
 
-  ].map(c => c.toJSON());
+  ].map(command => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
@@ -305,7 +302,7 @@ client.once('ready', async () => {
       { body: commands }
     );
 
-    console.log("Slash commands registered");
+    console.log('Slash commands registered');
 
   } catch (err) {
     console.log(err);
@@ -323,6 +320,10 @@ client.once('ready', async () => {
 
 client.on('interactionCreate', async interaction => {
 
+  /* ======================
+     JOB COMMAND
+  ====================== */
+
   if (interaction.isChatInputCommand()) {
 
     if (interaction.commandName === 'job') {
@@ -330,7 +331,7 @@ client.on('interactionCreate', async interaction => {
       if (activeDrivers[interaction.user.id]) {
 
         return interaction.reply({
-          content: '❌ You already have an active dispatch.',
+          content: '❌ You already have an active job.',
           ephemeral: true
         });
 
@@ -345,7 +346,7 @@ client.on('interactionCreate', async interaction => {
         driverId: interaction.user.id,
         driverName: interaction.user.username,
         store: store.name,
-        status: "ACTIVE"
+        status: 'ACTIVE'
       };
 
       jobs.push(job);
@@ -354,8 +355,8 @@ client.on('interactionCreate', async interaction => {
 
       const embed = new EmbedBuilder()
         .setTitle('JC LOGISTICS DISPATCH')
-        .setDescription(`
-🚚 JOB ID: ${jobId}
+        .setDescription(
+`🚚 JOB ID: ${jobId}
 
 🏪 STORE:
 ${store.name}
@@ -364,8 +365,8 @@ ${store.name}
 ${getStatus(store.stock)} (${store.stock}%)
 
 📡 STATUS:
-ACTIVE DISPATCH
-`);
+ACTIVE DISPATCH`
+        );
 
       const row = new ActionRowBuilder()
         .addComponents(
@@ -377,11 +378,15 @@ ACTIVE DISPATCH
 
       const activeChannel = await client.channels.fetch(CHANNELS.activeJobs);
 
-      await activeChannel.send({
-        content: `🚚 Dispatch assigned to <@${interaction.user.id}>`,
-        embeds: [embed],
-        components: [row]
-      });
+      if (activeChannel) {
+
+        await activeChannel.send({
+          content: `🚚 Dispatch assigned to <@${interaction.user.id}>`,
+          embeds: [embed],
+          components: [row]
+        });
+
+      }
 
       await interaction.reply({
         content: `✅ Dispatch generated for ${store.name}`,
@@ -389,6 +394,10 @@ ACTIVE DISPATCH
       });
 
     }
+
+    /* ======================
+       DEPLETE COMMAND
+    ====================== */
 
     if (interaction.commandName === 'deplete') {
 
@@ -402,15 +411,19 @@ ACTIVE DISPATCH
 
       const alertChannel = await client.channels.fetch(CHANNELS.alerts);
 
-      await alertChannel.send(`
-🚨 MANUAL STOCK EVENT
+      if (alertChannel) {
+
+        await alertChannel.send(
+`🚨 MANUAL STOCK EVENT
 
 STORE:
 ${store.name}
 
 NEW STOCK:
-${store.stock}%
-`);
+${store.stock}%`
+        );
+
+      }
 
       await interaction.reply({
         content: `⚠️ ${store.name} depleted.`,
@@ -420,6 +433,10 @@ ${store.stock}%
     }
 
   }
+
+  /* ======================
+     COMPLETE BUTTON
+  ====================== */
 
   if (interaction.isButton()) {
 
@@ -441,7 +458,7 @@ ${store.stock}%
         store.stock = 100;
       }
 
-      job.status = "COMPLETED";
+      job.status = 'COMPLETED';
 
       delete activeDrivers[job.driverId];
 
@@ -458,8 +475,8 @@ ${store.stock}%
 
       await interaction.update({
 
-        content: `
-✅ DELIVERY COMPLETED
+        content:
+`✅ DELIVERY COMPLETED
 
 DRIVER:
 <@${job.driverId}>
@@ -471,8 +488,7 @@ STOCK INCREASE:
 +${increase}%
 
 NEW STOCK:
-${store.stock}%
-`,
+${store.stock}%`,
 
         embeds: [],
         components: []
