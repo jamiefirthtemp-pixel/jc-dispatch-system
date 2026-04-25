@@ -17,13 +17,8 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-/* ======================================================
-   JC LOGISTICS DISPATCH SYSTEM
-====================================================== */
-
 /* =========================
    CHANNEL IDS
-   REPLACE THESE LATER
 ========================= */
 
 const CHANNELS = {
@@ -112,9 +107,7 @@ function generateJobId() {
 }
 
 function getPriorityStore() {
-
   const sorted = [...stores].sort((a, b) => a.stock - b.stock);
-
   return sorted[0];
 }
 
@@ -122,7 +115,7 @@ function getPriorityStore() {
    DAILY STOCK DEPLETION
 ========================= */
 
-setInterval(async () => {
+setInterval(() => {
 
   for (const store of stores) {
 
@@ -151,11 +144,9 @@ async function updateDispatchConsole() {
     if (!channel) return;
 
     const activeCount = jobs.filter(j => j.status === "ACTIVE").length;
-
     const lowStores = stores.filter(s => s.stock <= 30).length;
 
     const content = `
-\`\`\`
 JC LOGISTICS // DISPATCH CONTROL
 
 ACTIVE JOBS: ${activeCount}
@@ -168,7 +159,6 @@ STOCK CYCLE: ACTIVE (10% DAILY)
 
 LAST REFRESH:
 ${new Date().toLocaleString()}
-\`\`\`
 `;
 
     const messages = await channel.messages.fetch({ limit: 1 });
@@ -218,7 +208,6 @@ async function updateStockBoard() {
     }
 
     const content = `
-\`\`\`
 JC LOGISTICS // STOCK BOARD
 
 🔴 LOW STOCK
@@ -229,8 +218,6 @@ ${medium || "NONE"}
 
 🟢 HIGH STOCK
 ${high || "NONE"}
-
-\`\`\`
 `;
 
     const messages = await channel.messages.fetch({ limit: 1 });
@@ -261,11 +248,7 @@ async function updateDriverStats() {
 
     if (!channel) return;
 
-    let content = `
-\`\`\`
-JC LOGISTICS // DRIVER STATS
-
-`;
+    let content = `JC LOGISTICS // DRIVER STATS\n\n`;
 
     for (const id in driverStats) {
 
@@ -276,8 +259,6 @@ Jobs Completed: ${driverStats[id].completed}
 `;
 
     }
-
-    content += "\`\`\`";
 
     const messages = await channel.messages.fetch({ limit: 1 });
 
@@ -341,10 +322,6 @@ client.once('ready', async () => {
 ========================= */
 
 client.on('interactionCreate', async interaction => {
-
-  /* ======================
-     JOB COMMAND
-  ====================== */
 
   if (interaction.isChatInputCommand()) {
 
@@ -413,10 +390,6 @@ ACTIVE DISPATCH
 
     }
 
-    /* ======================
-       DEPLETE COMMAND
-    ====================== */
-
     if (interaction.commandName === 'deplete') {
 
       const store = stores[Math.floor(Math.random() * stores.length)];
@@ -447,10 +420,6 @@ ${store.stock}%
     }
 
   }
-
-  /* ======================
-     COMPLETE JOB BUTTON
-  ====================== */
 
   if (interaction.isButton()) {
 
