@@ -1,5 +1,3 @@
-Replace EVERYTHING in index.js with this EXACT code:
-
 require('dotenv').config();
 
 const {
