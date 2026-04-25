@@ -9,21 +9,15 @@ console.log('Bot online: ' + readyClient.user.tag);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-
 if (!interaction.isChatInputCommand()) {
 return;
 }
 
 if (interaction.commandName === 'job') {
-
-```
 await interaction.reply({
-  content: '🚛 Job generated successfully'
+content: 'Job generated successfully'
 });
-```
-
 }
-
 });
 
 client.login(process.env.TOKEN);
