@@ -13,9 +13,9 @@ const stores = [
 const activeJobs = {};
 
 function getStockStatus(stock) {
-if (stock <= 30) return '🔴 LOW';
-if (stock <= 60) return '🟡 MEDIUM';
-return '🟢 HIGH';
+if (stock <= 30) return 'LOW';
+if (stock <= 60) return 'MEDIUM';
+return 'HIGH';
 }
 
 function generateJobId() {
@@ -28,20 +28,17 @@ console.log('Bot online: ' + readyClient.user.tag);
 
 client.on(Events.InteractionCreate, async (interaction) => {
 try {
+if (interaction.isChatInputCommand()) {
+if (interaction.commandName === 'job') {
+if (activeJobs[interaction.user.id]) {
+await interaction.reply({
+content: 'You already have an active delivery job.',
+ephemeral: true
+});
+return;
+}
 
 ```
-if (interaction.isChatInputCommand()) {
-
-  if (interaction.commandName === 'job') {
-
-    if (activeJobs[interaction.user.id]) {
-      await interaction.reply({
-        content: '❌ You already have an active delivery job.',
-        ephemeral: true
-      });
-      return;
-    }
-
     const sortedStores = [...stores].sort((a, b) => a.stock - b.stock);
     const selectedStore = sortedStores[0];
 
@@ -53,12 +50,12 @@ if (interaction.isChatInputCommand()) {
     };
 
     const embed = new EmbedBuilder()
-      .setTitle('🚛 JC LOGISTICS DISPATCH')
+      .setTitle('JC LOGISTICS DISPATCH')
       .setDescription(
-        '📦 JOB ID: ' + jobId + '\n\n' +
-        '🏪 STORE:\n' + selectedStore.name + '\n\n' +
-        '📊 STOCK STATUS:\n' + getStockStatus(selectedStore.stock) + ' (' + selectedStore.stock + '%)\n\n' +
-        '📡 STATUS:\nACTIVE DELIVERY'
+        'JOB ID: ' + jobId + '\n\n' +
+        'STORE: ' + selectedStore.name + '\n\n' +
+        'STOCK STATUS: ' + getStockStatus(selectedStore.stock) + ' (' + selectedStore.stock + '%)\n\n' +
+        'STATUS: ACTIVE DELIVERY'
       );
 
     const row = new ActionRowBuilder().addComponents(
@@ -78,13 +75,11 @@ if (interaction.isChatInputCommand()) {
 }
 
 if (interaction.isButton()) {
-
   if (interaction.customId === 'complete_delivery') {
-
     delete activeJobs[interaction.user.id];
 
     await interaction.update({
-      content: '✅ DELIVERY COMPLETED',
+      content: 'DELIVERY COMPLETED',
       embeds: [],
       components: []
     });
