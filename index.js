@@ -70,146 +70,143 @@ new SlashCommandBuilder()
 
 new SlashCommandBuilder()
   .setName('stock')
-  .setDescription('View store stock levels'),
+  .setDescription('View stock levels'),
 
 new SlashCommandBuilder()
   .setName('deplete')
-  .setDescription('Manually deplete all stock')
+  .setDescription('Deplete stock')
 
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' })
 .setToken(process.env.TOKEN);
 
-try {
-
 await rest.put(
-  Routes.applicationCommands(readyClient.user.id),
-  { body: commands }
+Routes.applicationCommands(readyClient.user.id),
+{ body: commands }
 );
 
 console.log('Commands registered');
-
-} catch (error) {
-
-console.log(error);
-
-}
 
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
 
-if (!interaction.isChatInputCommand() && !interaction.isButton()) {
-return;
-}
-
-/* JOB COMMAND */
+try {
 
 if (interaction.isChatInputCommand()) {
 
-if (interaction.commandName === 'job') {
+  if (interaction.commandName === 'job') {
 
-  if (activeJobs[interaction.user.id]) {
+    if (activeJobs[interaction.user.id]) {
+
+      await interaction.reply({
+        content: 'You already have an active job.',
+        ephemeral: true
+      });
+
+      return;
+    }
+
+    const store = getLowestStockStore();
+
+    const jobId = generateJobId();
+
+    activeJobs[interaction.user.id] = {
+      jobId: jobId,
+      store: store.name
+    };
+
+    const row = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('complete_delivery')
+          .setLabel('COMPLETE DELIVERY')
+          .setStyle(ButtonStyle.Success)
+      );
 
     await interaction.reply({
-      content: 'You already have an active job.',
+      content:
+        '🚛 JOB GENERATED\n\n' +
+        'Job ID: ' + jobId + '\n' +
+        'Store: ' + store.name + '\n' +
+        'Stock: ' + store.stock + '%',
+      components: [row]
+    });
+
+    return;
+
+  }
+
+  if (interaction.commandName === 'stock') {
+
+    let message = '📦 STORE STOCK LEVELS\n\n';
+
+    stores.forEach(store => {
+      message += store.name + ': ' + store.stock + '%\n';
+    });
+
+    await interaction.reply({
+      content: message,
       ephemeral: true
     });
 
     return;
+
   }
 
-  const store = getLowestStockStore();
+  if (interaction.commandName === 'deplete') {
 
-  const jobId = generateJobId();
+    depleteStock();
 
-  activeJobs[interaction.user.id] = {
-    jobId: jobId,
-    store: store.name
-  };
+    await interaction.reply({
+      content: '⚠️ Stock manually depleted.',
+      ephemeral: true
+    });
 
-  const row = new ActionRowBuilder()
-    .addComponents(
-      new ButtonBuilder()
-        .setCustomId('complete_delivery')
-        .setLabel('COMPLETE DELIVERY')
-        .setStyle(ButtonStyle.Success)
-    );
+    return;
 
-  await interaction.reply({
-    content:
-      '🚛 JOB GENERATED\n\n' +
-      'Job ID: ' + jobId + '\n' +
-      'Store: ' + store.name + '\n' +
-      'Stock: ' + store.stock + '%',
-    components: [row]
-  });
-
-  return;
+  }
 
 }
-
-/* STOCK COMMAND */
-
-if (interaction.commandName === 'stock') {
-
-  let message = '📦 STORE STOCK LEVELS\n\n';
-
-  stores.forEach(store => {
-    message += store.name + ': ' + store.stock + '%\n';
-  });
-
-  await interaction.reply({
-    content: message,
-    ephemeral: true
-  });
-
-  return;
-
-}
-
-/* DEPLETE COMMAND */
-
-if (interaction.commandName === 'deplete') {
-
-  depleteStock();
-
-  await interaction.reply({
-    content: '⚠️ Stock manually depleted.',
-    ephemeral: true
-  });
-
-  return;
-
-}
-
-}
-
-/* COMPLETE DELIVERY BUTTON */
 
 if (interaction.isButton()) {
 
-if (interaction.customId === 'complete_delivery') {
+  if (interaction.customId === 'complete_delivery') {
 
-  const job = activeJobs[interaction.user.id];
+    const job = activeJobs[interaction.user.id];
 
-  if (!job) return;
+    if (!job) {
 
-  increaseStoreStock(job.store);
+      await interaction.reply({
+        content: 'No active job found.',
+        ephemeral: true
+      });
 
-  delete activeJobs[interaction.user.id];
+      return;
 
-  await interaction.update({
-    content:
-      '✅ DELIVERY COMPLETED\n\n' +
-      'Stock increased for: ' + job.store,
-    components: []
-  });
+    }
 
-  return;
+    increaseStoreStock(job.store);
+
+    delete activeJobs[interaction.user.id];
+
+    await interaction.reply({
+      content:
+        '✅ DELIVERY COMPLETED\n\n' +
+        'Stock increased for: ' + job.store,
+      ephemeral: true
+    });
+
+    return;
+
+  }
 
 }
+
+} catch (error) {
+
+console.log(error);
 
 }
 
