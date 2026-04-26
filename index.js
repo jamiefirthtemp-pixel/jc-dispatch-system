@@ -49,7 +49,7 @@ const rdcs = [
 
 ];
 
-/* FULL STORE NETWORK */
+/* STORES */
 
 const stores = [
 
@@ -159,7 +159,7 @@ if (store.stock < 0) {
 
 }
 
-/* STOCK BOARD */
+/* LIVE STOCK BOARD */
 
 async function updateStockBoard() {
 
@@ -168,7 +168,26 @@ await client.channels.fetch(
 STOCK_CHANNEL_ID
 );
 
-if (!channel) return;
+if (!channel) {
+console.log('Stock channel not found');
+return;
+}
+
+let stockText = '';
+
+for (const store of stores) {
+
+stockText +=
+  getTraffic(store.stock) +
+  ' | ' +
+  store.name +
+  ' - ' +
+  store.location +
+  ' | ' +
+  store.stock +
+  '%\n';
+
+}
 
 const embed = new EmbedBuilder()
 
@@ -176,34 +195,11 @@ const embed = new EmbedBuilder()
   '📦 JC LOGISTICS LIVE STOCK BOARD'
 )
 
+.setDescription(stockText)
+
 .setColor(0x0099ff)
 
-.setDescription(
-  'Live network inventory status'
-)
-
 .setTimestamp();
-
-for (const store of stores) {
-
-embed.addFields({
-
-  name:
-    store.name +
-    ' - ' +
-    store.location,
-
-  value:
-    getTraffic(store.stock) +
-    ' | ' +
-    store.stock +
-    '%',
-
-  inline: false
-
-});
-
-}
 
 const messages =
 await channel.messages.fetch({
@@ -232,7 +228,7 @@ await channel.send({
 
 }
 
-/* DRIVER BOARD */
+/* DRIVER STATS BOARD */
 
 async function updateDriverBoard() {
 
@@ -556,8 +552,6 @@ try {
         components: [row]
 
       });
-
-      /* SEND TO DISPATCH CHANNEL */
 
       const dispatchChannel =
         await client.channels.fetch(
