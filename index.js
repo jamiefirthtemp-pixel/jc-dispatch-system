@@ -433,6 +433,9 @@ async function createDispatch({
 🚚 Dispatch: ${dispatchId}
 👤 Driver: <@${userId}>
 
+📦 Pickup RDC:
+${incidentId ? state.incidents.find(i => i.id === incidentId)?.pickupRdc || 'Unknown RDC' : 'Standard Network RDC'}
+
 🏪 Destination:
 ${store.name}
 
@@ -498,6 +501,7 @@ async function completeDispatch(dispatchId, interaction) {
 `╔════════ CONTRACT COMPLETE ════════╗
 
 ✅ ${incident.title}
+📦 Pickup RDC: ${incident.pickupRdc}
 🏪 ${store.name}
 
 👤 Resolved By:
@@ -535,7 +539,24 @@ ${incident.points} Points
 
   await interaction.update({
     content:
-`╔════ DELIVERY COMPLETE ════╗\n\n👤 Driver:\n<@${dispatch.userId}>\n\n🆔 Dispatch:\n${dispatchId}\n\n🏪 Store:\n${store.name}\n\n📦 Updated Stock:\n${store.stock}%\n\n🏆 Reward Delivered:\n${dispatch.points} Points\n\n╚══════════════════════════╝`,
+`╔════ DELIVERY COMPLETE ════╗
+
+👤 Driver:
+<@${dispatch.userId}>
+
+🆔 Dispatch:
+${dispatchId}
+
+🏪 Store:
+${store.name}
+
+📦 Updated Stock:
+${store.stock}%
+
+🏆 Reward Delivered:
+${dispatch.points} Points
+
+╚══════════════════════════╝`,
     components: [disabledRow]
   });
 }
@@ -553,14 +574,40 @@ async function createIncident(manual = false) {
     return;
   }
 
-  const scenario = incidentScenarios[
-    Math.floor(Math.random() * incidentScenarios.length)
+  const usedScenarioDescriptions = state.incidents
+    .filter(i => i.status === "OPEN" || i.status === "ASSIGNED")
+    .map(i => i.description);
+
+  const availableScenarios = incidentScenarios.filter(
+    s => !usedScenarioDescriptions.includes(s.description)
+  );
+
+  const scenarioPool = availableScenarios.length
+    ? availableScenarios
+    : incidentScenarios;
+
+  const scenario = scenarioPool[
+    Math.floor(Math.random() * scenarioPool.length)
   ];
 
-  const store = [...state.stores]
+  const activeIncidentStoreIds = state.incidents
+    .filter(i => i.status === "OPEN" || i.status === "ASSIGNED")
+    .map(i => i.storeId);
+
+  const availableStores = state.stores.filter(
+    s => !activeIncidentStoreIds.includes(s.id)
+  );
+
+  const storePool = availableStores.length
+    ? availableStores
+    : state.stores;
+
+  const store = [...storePool]
     .sort((a, b) => a.stock - b.stock)[0];
 
   store.stock = Math.max(0, store.stock - scenario.stockLoss);
+
+  const contractRdc = rdcs[Math.floor(Math.random() * rdcs.length)];
 
   const incident = {
     id: makeId("INC"),
@@ -574,6 +621,7 @@ async function createIncident(manual = false) {
     assignedTo: null,
     messageId: null,
     channelId: null,
+    pickupRdc: contractRdc,
     createdAt: now,
     expiresAt: now + INCIDENT_EXPIRY_MS
   };
@@ -601,6 +649,7 @@ async function createIncident(manual = false) {
 `╔════════ URGENT CONTRACT ════════╗
 
 🚨 ${scenario.title}
+📦 Pickup RDC: ${incident.pickupRdc}
 🏪 ${store.name}
 🔥 Severity: ${scenario.severity}
 
@@ -822,6 +871,9 @@ client.on("interactionCreate", async interaction => {
 🚨 ${incident.title}
 🏪 ${storeData.name}
 🔥 Severity: ${incident.severity}
+
+📦 Pickup RDC:
+${incident.pickupRdc}
 
 👤 Assigned To:
 <@${interaction.user.id}>
