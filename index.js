@@ -636,10 +636,33 @@ async function registerCommands() {
 client.once("ready", async () => {
   console.log(`Online: ${client.user.tag}`);
 
-  await registerCommands();
-  await createDispatchTerminal();
-  await updateStockBoard();
-  await updateLeaderboard();
+  try {
+    await registerCommands();
+    console.log("Commands loaded");
+  } catch (e) {
+    console.error("COMMAND ERROR", e);
+  }
+
+  try {
+    await createDispatchTerminal();
+    console.log("Terminal loaded");
+  } catch (e) {
+    console.error("TERMINAL ERROR", e);
+  }
+
+  try {
+    await updateStockBoard();
+    console.log("Stock board loaded");
+  } catch (e) {
+    console.error("STOCK ERROR", e);
+  }
+
+  try {
+    await updateLeaderboard();
+    console.log("Leaderboard loaded");
+  } catch (e) {
+    console.error("LEADERBOARD ERROR", e);
+  }
 });
 
 // ======================================================
@@ -799,3 +822,9 @@ client.on("interactionCreate", async interaction => {
     console.error(error);
   }
 });
+
+// ======================================================
+// LOGIN
+// ======================================================
+
+client.login(process.env.TOKEN);
