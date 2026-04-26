@@ -43,8 +43,12 @@ const INCIDENT_COOLDOWN_MS = 1000 * 60 * 5;
 // ======================================================
 
 const defaultState = {
-  presentationVersion: 2,
+  activeCompanyEvent: null,
+  lastCompanyEventAt: 0,
   selectedRdc: {},
+  activeDrivers: {},
+  driverStats: {},
+  driverRanks: {},ectedRdc: {},
   activeDrivers: {},
   driverStats: {},
   dispatches: [],
@@ -198,6 +202,14 @@ function makeId(prefix) {
   return `${prefix}-${Math.floor(Math.random() * 999999)}`;
 }
 
+function getDriverRank(points) {
+  if (points >= 200) return "🏆 Operations Specialist";
+  if (points >= 120) return "🚛 Senior Driver";
+  if (points >= 60) return "🚚 Class 1 Driver";
+  if (points >= 25) return "🚐 Class 2 Driver";
+  return "🟢 Trainee Driver";
+}
+
 function getStatus(stock) {
   if (stock <= 30) return "🔴";
   if (stock <= 60) return "🟡";
@@ -269,6 +281,8 @@ async function updateStockBoard() {
   const lowCount = state.stores.filter(s => s.stock > 30 && s.stock <= 60).length;
   const healthyCount = state.stores.filter(s => s.stock > 60).length;
 
+  let failedStores = state.stores.filter(s => s.failure).length;
+
   let content = `╔════════════════════════════╗
       JC LOGISTICS
        LIVE STOCK BOARD
@@ -277,9 +291,16 @@ async function updateStockBoard() {
 🔴 Critical Amount: ${criticalCount}
 🟡 Low Amount: ${lowCount}
 🟢 Healthy Amount: ${healthyCount}
+💀 Failed Stores: ${failedStores}
 `;
 
   const activeIncidents = state.incidents.filter(i => i.status === "OPEN");
+
+  if (state.activeCompanyEvent) {
+    content += `\n🏢 COMPANY EVENT ACTIVE\n`;
+    content += `${state.activeCompanyEvent.title}\n`;
+    content += `${state.activeCompanyEvent.company} stores losing stock faster\n`;
+  }
 
   if (activeIncidents.length) {
     content += `
@@ -324,7 +345,7 @@ async function updateLeaderboard() {
   const sorted = Object.entries(state.driverStats)
     .sort((a, b) => b[1] - a[1]);
 
-  let content = `🏆 JC LOGISTICS LEADERBOARD\n\n`;
+  let content = `🏆 JC LOGISTICS DRIVER RANKINGS\n\n`;
 
   if (!sorted.length) {
     content += "No deliveries completed.";
@@ -332,7 +353,11 @@ async function updateLeaderboard() {
 
   sorted.forEach(([id, points], index) => {
     const medals = ["🥇", "🥈", "🥉"];
-    content += `${medals[index] || "▫️"} <@${id}> — ${points} points\n`;
+    const rank = getDriverRank(points);
+
+    content += `${medals[index] || "▫️"} <@${id}>\n`;
+    content += `${rank}\n`;
+    content += `Points: ${points}\n\n`;
   });
 
   const messages = await channel.messages.fetch({ limit: 10 });
@@ -483,6 +508,10 @@ async function completeDispatch(dispatchId, interaction) {
   }
 
   state.driverStats[dispatch.userId] += dispatch.points;
+
+  state.driverRanks[dispatch.userId] = getDriverRank(
+    state.driverStats[dispatch.userId]
+  );
 
   if (dispatch.incidentId) {
     const incident = state.incidents.find(i => i.id === dispatch.incidentId);
@@ -690,10 +719,46 @@ function cleanupIncidents() {
 // STOCK DRAIN
 // ======================================================
 
+const companyEvents = [
+  {
+    company: "Tesco",
+    title: "Tesco Emergency Week",
+    multiplier: 2
+  },
+  {
+    company: "Aldi",
+    title: "Aldi Supply Surge",
+    multiplier: 2
+  },
+  {
+    company: "Lidl",
+    title: "Lidl Recovery Operation",
+    multiplier: 2
+  }
+];
+
 setInterval(async () => {
   for (const store of state.stores) {
-    const drain = Math.floor(Math.random() * 8) + 3;
+    let drain = Math.floor(Math.random() * 8) + 3;
+
+    if (
+      state.activeCompanyEvent &&
+      store.company === state.activeCompanyEvent.company
+    ) {
+      drain *= state.activeCompanyEvent.multiplier;
+    }
+
     store.stock = Math.max(0, store.stock - drain);
+
+    if (store.stock <= 0) {
+      store.failure = true;
+    }
+  }
+
+  if (!state.activeCompanyEvent && Math.random() < 0.25) {
+    state.activeCompanyEvent = companyEvents[
+      Math.floor(Math.random() * companyEvents.length)
+    ];
   }
 
   if (Math.random() < 0.15) {
