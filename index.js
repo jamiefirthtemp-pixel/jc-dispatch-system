@@ -255,29 +255,119 @@ async function updateStockBoard() {
     const grouped =
       groupStores();
 
+    // =========================================
+    // COUNTERS
+    // =========================================
+
+    let criticalCount = 0;
+    let lowCount = 0;
+
+    stores.forEach(store => {
+
+      if (store.stock <= 30) {
+
+        criticalCount++;
+
+      } else if (store.stock <= 60) {
+
+        lowCount++;
+
+      }
+
+    });
+
+    // =========================================
+    // HEADER
+    // =========================================
+
     let content =
-`📦 JC LOGISTICS STOCK BOARD
+`╔════════════════════════╗
+      JC LOGISTICS
+        STOCK BOARD
+╚════════════════════════╝
+
+🔴 Critical Stores: ${criticalCount}
+🟡 Low Stock Stores: ${lowCount}
 
 `;
 
+    // =========================================
+    // COMPANY SECTIONS
+    // =========================================
+
     Object.keys(grouped).forEach(company => {
 
-      content += `📦 ${company}\n\n`;
+      content +=
+`📦 ${company}
+━━━━━━━━━━━━━━━━━━
+`;
 
-      grouped[company].forEach(store => {
+      const sortedStores =
+        grouped[company].sort(
+          (a, b) =>
+            a.stock - b.stock
+        );
+
+      sortedStores.forEach(store => {
+
+        let icon = "🟢";
+
+        if (store.stock <= 30) {
+
+          icon = "🔴";
+
+        } else if (
+          store.stock <= 60
+        ) {
+
+          icon = "🟡";
+
+        }
+
+        const shortName =
+          store.name.split(" - ")[1];
+
+        const dots =
+          ".".repeat(
+            Math.max(
+              1,
+              18 - shortName.length
+            )
+          );
 
         content +=
-`${getStatus(store.stock)} ${store.name}\n`;
-
-        content +=
-`Stock: ${store.stock}%\n\n`;
+`${icon} ${shortName} ${dots} ${store.stock}%
+`;
 
       });
 
-      content +=
-`━━━━━━━━━━━━━━\n\n`;
+      content += "\n";
 
     });
+
+    // =========================================
+    // TIMESTAMP
+    // =========================================
+
+    const now = new Date();
+
+    const time =
+      now.toLocaleTimeString(
+        "en-GB",
+        {
+
+          hour: "2-digit",
+          minute: "2-digit"
+
+        }
+      );
+
+    content +=
+`🕒 Updated: ${time}`;
+
+    // =========================================
+    // UPDATE MESSAGE
+    // =========================================
 
     const messages =
       await channel.messages.fetch({
