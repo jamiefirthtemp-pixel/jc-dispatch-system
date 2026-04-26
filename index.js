@@ -323,7 +323,7 @@ await channel.send({
 
 /* DAILY STOCK DEPLETION */
 
-setInterval(() => {
+setInterval(async () => {
 
 decreaseStock();
 
@@ -333,7 +333,7 @@ updateStockBoard();
 
 /* AUTO DRIVER BOARD REFRESH */
 
-setInterval(() => {
+setInterval(async () => {
 
 updateDriverBoard();
 
@@ -383,3 +383,11 @@ await updateDriverBoard();
 );
 
 client.login(process.env.TOKEN);
+
+process.on("unhandledRejection", error => {
+  console.error("Unhandled promise rejection:", error);
+});
+
+process.on("uncaughtException", error => {
+  console.error("Uncaught exception:", error);
+});
