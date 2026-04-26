@@ -53,19 +53,50 @@ const rdcs = [
 
 const stores = [
 
-{ name: 'TESCO', location: 'LONDON', stock: 15 },
-{ name: 'TESCO', location: 'ULLAPOOL', stock: 20 },
-{ name: 'TESCO', location: 'NORWICH', stock: 45 },
-
-{ name: 'LIDL', location: 'SWANSEA', stock: 20 },
-{ name: 'LIDL', location: 'EDINBURGH', stock: 30 },
-
-{ name: 'ALDI', location: 'LONDON', stock: 20 },
+{ name: 'ALDI', location: 'PORTHMADOG', stock: 45 },
+{ name: 'ALDI', location: 'WATERFORD', stock: 55 },
+{ name: 'ALDI', location: 'SHEFFIELD', stock: 70 },
 { name: 'ALDI', location: 'NEWCASTLE', stock: 35 },
+{ name: 'ALDI', location: 'LONDON', stock: 20 },
+
+{ name: 'HAWES MARKETPLACE', location: 'HAWES', stock: 60 },
+
+{ name: 'DREAMS', location: 'EXETER', stock: 50 },
+
+{ name: 'HOMEBASE', location: 'EXETER', stock: 40 },
+{ name: 'HOMEBASE', location: 'PLYMOUTH', stock: 65 },
 
 { name: 'IKEA', location: 'CROYDON', stock: 25 },
+{ name: 'IKEA', location: 'DOUGLAS', stock: 45 },
+{ name: 'IKEA', location: 'DUBLIN', stock: 35 },
 
-{ name: 'SAINSBURYS', location: 'EXETER', stock: 35 }
+{ name: 'LIDL', location: 'PERTH', stock: 60 },
+{ name: 'LIDL', location: 'EDINBURGH', stock: 30 },
+{ name: 'LIDL', location: 'WATERFORD', stock: 40 },
+{ name: 'LIDL', location: 'SWANSEA', stock: 20 },
+{ name: 'LIDL', location: 'SOUTHAMPTON', stock: 55 },
+{ name: 'LIDL', location: 'CANTERBURY', stock: 45 },
+{ name: 'LIDL', location: 'ANTRIM', stock: 25 },
+
+{ name: 'MCDONALDS', location: 'LONDON', stock: 50 },
+
+{ name: 'SAINSBURYS', location: 'EXETER', stock: 35 },
+{ name: 'SAINSBURYS', location: 'NEWPORT', stock: 25 },
+{ name: 'SAINSBURYS', location: 'LISBURN', stock: 40 },
+
+{ name: 'TESCO', location: 'DUBLIN', stock: 30 },
+{ name: 'TESCO', location: 'BELFAST', stock: 45 },
+{ name: 'TESCO', location: 'ANTRIM', stock: 20 },
+{ name: 'TESCO', location: 'DUMFRIES', stock: 50 },
+{ name: 'TESCO', location: 'HOLYHEAD', stock: 35 },
+{ name: 'TESCO', location: 'PORTHMADOG', stock: 25 },
+{ name: 'TESCO', location: 'ABERYSTWYTH', stock: 40 },
+{ name: 'TESCO', location: 'FOLKESTONE', stock: 30 },
+{ name: 'TESCO', location: 'LONDON', stock: 15 },
+{ name: 'TESCO', location: 'CHELMSFORD', stock: 55 },
+{ name: 'TESCO', location: 'NORWICH', stock: 45 },
+{ name: 'TESCO', location: 'ULLAPOOL', stock: 20 },
+{ name: 'TESCO', location: 'STORNOWAY', stock: 35 }
 
 ];
 
