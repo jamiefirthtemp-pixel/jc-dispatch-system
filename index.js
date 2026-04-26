@@ -25,10 +25,27 @@ const STOCK_CHANNEL_ID = '1497749476234760342';
 const rdcs = [
 
 { id: 'dhl_ullapool', name: 'DHL', location: 'ULLAPOOL' },
+{ id: 'dhl_oban', name: 'DHL', location: 'OBAN' },
 { id: 'dhl_aberdeen', name: 'DHL', location: 'ABERDEEN' },
+{ id: 'dhl_newport', name: 'DHL', location: 'NEWPORT' },
+{ id: 'dhl_portsmouth', name: 'DHL', location: 'PORTSMOUTH' },
+
+{ id: 'dsv_newry', name: 'DSV', location: 'NEWRY' },
+{ id: 'dsv_wexford', name: 'DSV', location: 'WEXFORD' },
 { id: 'dsv_waterford', name: 'DSV', location: 'WATERFORD' },
+{ id: 'dsv_newport', name: 'DSV', location: 'NEWPORT' },
+
 { id: 'xpo_london', name: 'XPO LOGISTICS', location: 'LONDON' },
-{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' }
+{ id: 'xpo_dover', name: 'XPO LOGISTICS', location: 'DOVER' },
+
+{ id: 'culina_sligo', name: 'STOBART/CULINA', location: 'SLIGO' },
+{ id: 'culina_ballymena', name: 'STOBART/CULINA', location: 'BALLYMENA' },
+{ id: 'culina_ftwilliam', name: 'STOBART/CULINA', location: 'FT WILLIAM' },
+{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' },
+{ id: 'culina_ullapool', name: 'STOBART/CULINA', location: 'ULLAPOOL' },
+{ id: 'culina_swansea', name: 'STOBART/CULINA', location: 'SWANSEA' },
+{ id: 'culina_croydon', name: 'STOBART/CULINA', location: 'CROYDON' },
+{ id: 'culina_portsmouth', name: 'STOBART/CULINA', location: 'PORTSMOUTH' }
 
 ];
 
@@ -36,22 +53,50 @@ const rdcs = [
 
 const stores = [
 
-{ name: 'TESCO', location: 'LONDON', stock: 20 },
-{ name: 'TESCO', location: 'ULLAPOOL', stock: 35 },
-{ name: 'TESCO', location: 'NORWICH', stock: 40 },
+{ name: 'ALDI', location: 'PORTHMADOG', stock: 45 },
+{ name: 'ALDI', location: 'WATERFORD', stock: 55 },
+{ name: 'ALDI', location: 'SHEFFIELD', stock: 70 },
+{ name: 'ALDI', location: 'NEWCASTLE', stock: 35 },
+{ name: 'ALDI', location: 'LONDON', stock: 20 },
 
-{ name: 'LIDL', location: 'SWANSEA', stock: 45 },
+{ name: 'HAWES MARKETPLACE', location: 'HAWES', stock: 60 },
+
+{ name: 'DREAMS', location: 'EXETER', stock: 50 },
+
+{ name: 'HOMEBASE', location: 'EXETER', stock: 40 },
+{ name: 'HOMEBASE', location: 'PLYMOUTH', stock: 65 },
+
+{ name: 'IKEA', location: 'CROYDON', stock: 25 },
+{ name: 'IKEA', location: 'DOUGLAS', stock: 45 },
+{ name: 'IKEA', location: 'DUBLIN', stock: 35 },
+
+{ name: 'LIDL', location: 'PERTH', stock: 60 },
 { name: 'LIDL', location: 'EDINBURGH', stock: 30 },
-{ name: 'LIDL', location: 'SOUTHAMPTON', stock: 25 },
+{ name: 'LIDL', location: 'WATERFORD', stock: 40 },
+{ name: 'LIDL', location: 'SWANSEA', stock: 20 },
+{ name: 'LIDL', location: 'SOUTHAMPTON', stock: 55 },
+{ name: 'LIDL', location: 'CANTERBURY', stock: 45 },
+{ name: 'LIDL', location: 'ANTRIM', stock: 25 },
 
-{ name: 'ALDI', location: 'SHEFFIELD', stock: 80 },
-{ name: 'ALDI', location: 'LONDON', stock: 15 },
+{ name: 'MCDONALDS', location: 'LONDON', stock: 50 },
 
-{ name: 'SAINSBURYS', location: 'EXETER', stock: 25 },
-{ name: 'SAINSBURYS', location: 'NEWPORT', stock: 50 },
+{ name: 'SAINSBURYS', location: 'EXETER', stock: 35 },
+{ name: 'SAINSBURYS', location: 'NEWPORT', stock: 25 },
+{ name: 'SAINSBURYS', location: 'LISBURN', stock: 40 },
 
-{ name: 'TESCO', location: 'BELFAST', stock: 20 },
-{ name: 'TESCO', location: 'DUBLIN', stock: 55 }
+{ name: 'TESCO', location: 'DUBLIN', stock: 30 },
+{ name: 'TESCO', location: 'BELFAST', stock: 45 },
+{ name: 'TESCO', location: 'ANTRIM', stock: 20 },
+{ name: 'TESCO', location: 'DUMFRIES', stock: 50 },
+{ name: 'TESCO', location: 'HOLYHEAD', stock: 35 },
+{ name: 'TESCO', location: 'PORTHMADOG', stock: 25 },
+{ name: 'TESCO', location: 'ABERYSTWYTH', stock: 40 },
+{ name: 'TESCO', location: 'FOLKESTONE', stock: 30 },
+{ name: 'TESCO', location: 'LONDON', stock: 15 },
+{ name: 'TESCO', location: 'CHELMSFORD', stock: 55 },
+{ name: 'TESCO', location: 'NORWICH', stock: 45 },
+{ name: 'TESCO', location: 'ULLAPOOL', stock: 20 },
+{ name: 'TESCO', location: 'STORNOWAY', stock: 35 }
 
 ];
 
@@ -87,8 +132,12 @@ Math.floor(Math.random() * 100000);
 
 function getLowestStockStore() {
 
-return [...stores]
-.sort((a, b) => a.stock - b.stock)[0];
+const sorted =
+[...stores].sort(
+(a, b) => a.stock - b.stock
+);
+
+return sorted[0];
 
 }
 
@@ -135,7 +184,7 @@ if (!channel) return;
 const embed = new EmbedBuilder()
 
 .setTitle(
-  '📦 LIVE STOCK CONTROL BOARD'
+  '📦 JC LOGISTICS STOCK CONTROL'
 )
 
 .setColor(0x0099ff)
@@ -214,12 +263,12 @@ const commands = [
 
   {
     name: 'job',
-    description: 'Generate job'
+    description: 'Generate delivery job'
   },
 
   {
     name: 'stats',
-    description: 'Driver stats'
+    description: 'View driver stats'
   }
 
 ];
@@ -280,7 +329,7 @@ try {
         await interaction.reply({
 
           content:
-            '❌ You already have an active delivery.',
+            '❌ You already have an active job.',
 
           ephemeral: true
 
@@ -323,7 +372,7 @@ try {
       await interaction.reply({
 
         content:
-          '🏭 Select pickup RDC',
+          '🏭 Select RDC',
 
         components: [row],
 
