@@ -1,31 +1,25 @@
-require("dotenv").config();
+async function registerCommands() {
 
-const { REST, Routes } = require("discord.js");
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("alert")
+      .setDescription("Trigger urgent contract")
+      .setDefaultMemberPermissions(
+        PermissionFlagsBits.Administrator
+      )
+  ].map(c => c.toJSON());
 
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+  const rest = new REST({ version: "10" })
+    .setToken(process.env.TOKEN);
 
-// EMPTY COMMAND ARRAY = DELETE ALL COMMANDS
+  await rest.put(
 
-(async () => {
+    Routes.applicationCommands(
+      "1497676061083697313"
+    ),
 
-  try {
+    { body: commands }
 
-    console.log("Removing slash commands...");
+  );
 
-    await rest.put(
-
-      Routes.applicationCommands("1497676061083697313"),
-
-      { body: [] }
-
-    );
-
-    console.log("Slash commands removed.");
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-})();
+}
