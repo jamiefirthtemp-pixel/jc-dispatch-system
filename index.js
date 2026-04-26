@@ -104,6 +104,66 @@ let activeEmergency =
   null;
 
 // ======================================================
+// JOB TYPES
+// ======================================================
+
+const jobTypes = [
+
+  {
+    name:
+      "📦 Standard Delivery",
+
+    stockBoost: 25,
+
+    points: 1,
+
+    priority:
+      "STANDARD"
+
+  },
+
+  {
+    name:
+      "🚨 Emergency Restock",
+
+    stockBoost: 40,
+
+    points: 3,
+
+    priority:
+      "CRITICAL"
+
+  },
+
+  {
+    name:
+      "❄ Refrigerated Goods",
+
+    stockBoost: 30,
+
+    points: 2,
+
+    priority:
+      "HIGH"
+
+  },
+
+  {
+    name:
+      "⚡ Critical Supply Transfer",
+
+    stockBoost: 50,
+
+    points: 4,
+
+    priority:
+      "SEVERE"
+
+  }
+
+];
+
+// ======================================================
 // RDCS
 // ======================================================
 
@@ -198,6 +258,27 @@ function getStatus(stock) {
   if (stock <= 60) return "🟡";
 
   return "🟢";
+
+}
+
+function getJobType(emergency) {
+
+  if (emergency) {
+
+    return jobTypes.find(
+      j =>
+        j.name ===
+        "🚨 Emergency Restock"
+    );
+
+  }
+
+  return jobTypes[
+    Math.floor(
+      Math.random() *
+      jobTypes.length
+    )
+  ];
 
 }
 
@@ -528,7 +609,7 @@ async function updateLeaderboard() {
             medal = "🥉";
 
           content +=
-`${medal} <@${userId}> — ${count} deliveries
+`${medal} <@${userId}> — ${count} points
 `;
 
         }
@@ -745,10 +826,6 @@ client.on(
 
     try {
 
-      // ==================================================
-      // SELECT MENU
-      // ==================================================
-
       if (
         interaction.isStringSelectMenu()
       ) {
@@ -778,17 +855,13 @@ ${interaction.values[0]}`,
 
       }
 
-      // ==================================================
-      // BUTTONS
-      // ==================================================
-
       if (
         interaction.isButton()
       ) {
 
-        // ==============================================
+        // ==================================================
         // GENERATE JOB
-        // ==============================================
+        // ==================================================
 
         if (
           interaction.customId ===
@@ -838,6 +911,11 @@ ${interaction.values[0]}`,
             store.name ===
             activeEmergency.store.name;
 
+          const jobType =
+            getJobType(
+              emergency
+            );
+
           const jobId =
             "J-" +
 
@@ -858,7 +936,13 @@ ${interaction.values[0]}`,
               interaction.user.id,
 
             store:
-              store.name
+              store.name,
+
+            stockBoost:
+              jobType.stockBoost,
+
+            points:
+              jobType.points
 
           });
 
@@ -898,16 +982,6 @@ ${interaction.values[0]}`,
               ACTIVE_JOBS_CHANNEL_ID
             );
 
-          let priority =
-            "STANDARD";
-
-          if (emergency) {
-
-            priority =
-              "🚨 EMERGENCY";
-
-          }
-
           const content =
 `┌──────────────────────────────┐
       ACTIVE DISPATCH
@@ -919,6 +993,9 @@ ${interaction.values[0]}`,
 🚚 JOB ID:
 ${jobId}
 
+📦 JOB TYPE:
+${jobType.name}
+
 🏭 RDC:
 ${rdc}
 
@@ -929,10 +1006,13 @@ ${store.region}
 ${store.name}
 
 ⚠ PRIORITY:
-${priority}
+${jobType.priority}
 
-📦 STOCK:
-${store.stock}%
+📈 STOCK IMPACT:
++${jobType.stockBoost}%
+
+🏆 REWARD:
+${jobType.points} points
 
 📋 STATUS:
 IN TRANSIT
@@ -957,9 +1037,9 @@ IN TRANSIT
 
         }
 
-        // ==============================================
+        // ==================================================
         // COMPLETE DELIVERY
-        // ==============================================
+        // ==================================================
 
         if (
           interaction.customId.startsWith(
@@ -1001,7 +1081,8 @@ IN TRANSIT
           store.stock =
             Math.min(
               100,
-              store.stock + 25
+              store.stock +
+              job.stockBoost
             );
 
           delete activeDrivers[
@@ -1028,7 +1109,8 @@ IN TRANSIT
 
           driverStats[
             job.user
-          ]++;
+          ] +=
+            job.points;
 
           saveData(
             DRIVER_STATS_FILE,
@@ -1111,7 +1193,7 @@ ${store.name}
 📦 UPDATED STOCK:
 ${store.stock}%
 
-📈 DRIVER TOTAL:
+🏆 DRIVER POINTS:
 ${driverStats[job.user]}
 `,
 
@@ -1136,10 +1218,6 @@ ${driverStats[job.user]}
 
   }
 );
-
-// ======================================================
-// LOGIN
-// ======================================================
 
 client.login(
   process.env.TOKEN
