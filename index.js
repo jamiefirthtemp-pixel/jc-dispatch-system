@@ -113,8 +113,7 @@ return '🟢 HEALTHY';
 
 function generateJobId() {
 
-return 'J-' +
-Math.floor(Math.random() * 100000);
+return 'J-' + Math.floor(Math.random() * 100000);
 
 }
 
@@ -185,9 +184,7 @@ stockText +=
 
 const embed = new EmbedBuilder()
 
-.setTitle(
-  '📦 JC LOGISTICS LIVE STOCK BOARD'
-)
+.setTitle('📦 JC LOGISTICS LIVE STOCK BOARD')
 
 .setDescription(stockText)
 
@@ -202,8 +199,7 @@ limit: 20
 
 const existing =
 messages.find(
-m =>
-m.author.id === client.user.id
+m => m.author.id === client.user.id
 );
 
 if (existing) {
@@ -222,7 +218,7 @@ await channel.send({
 
 }
 
-/* DRIVER STATS BOARD */
+/* DRIVER LEADERBOARD */
 
 async function updateDriverBoard() {
 
@@ -235,43 +231,63 @@ if (!channel) return;
 
 const embed = new EmbedBuilder()
 
-.setTitle(
-  '📊 JC LOGISTICS DRIVER STATS'
-)
+.setTitle('🏆 JC LOGISTICS DRIVER LEADERBOARD')
 
 .setColor(0x00cc66)
 
+.setDescription(
+  'Top performing drivers'
+)
+
 .setTimestamp();
 
-const entries =
-Object.entries(driverStats);
+const sortedDrivers = Object.values(driverStats)
 
-if (entries.length === 0) {
-
-embed.setDescription(
-  'No completed deliveries yet.'
+.sort(
+  (a, b) =>
+    b.completedJobs -
+    a.completedJobs
 );
+
+let leaderboardText = '';
+
+if (sortedDrivers.length === 0) {
+
+leaderboardText =
+  'No completed deliveries yet.';
 
 } else {
 
-entries.forEach(([id, stats]) => {
+sortedDrivers.forEach(
+  (driver, index) => {
 
-  embed.addFields({
+    leaderboardText +=
 
-    name:
-      stats.username,
+      '#' +
+      (index + 1) +
 
-    value:
-      'Completed Jobs: ' +
-      stats.completedJobs,
+      ' | ' +
 
-    inline: false
+      driver.username +
 
-  });
+      ' | 🚚 ' +
 
-});
+      driver.completedJobs +
+
+      ' deliveries\n';
+
+  }
+);
 
 }
+
+embed.addFields({
+
+name: '📊 DRIVER RANKINGS',
+
+value: leaderboardText
+
+});
 
 const messages =
 await channel.messages.fetch({
@@ -280,8 +296,7 @@ limit: 20
 
 const existing =
 messages.find(
-m =>
-m.author.id === client.user.id
+m => m.author.id === client.user.id
 );
 
 if (existing) {
@@ -309,6 +324,14 @@ decreaseStock();
 updateStockBoard();
 
 }, 300000);
+
+/* AUTO DRIVER BOARD REFRESH */
+
+setInterval(() => {
+
+updateDriverBoard();
+
+}, 900000);
 
 /* READY */
 
@@ -366,8 +389,7 @@ try {
   ) {
 
     if (
-      interaction.commandName ===
-      'job'
+      interaction.commandName === 'job'
     ) {
 
       if (
@@ -421,8 +443,7 @@ try {
 
       await interaction.reply({
 
-        content:
-          '🏭 Select RDC',
+        content: '🏭 Select RDC',
 
         components: [row],
 
@@ -696,6 +717,4 @@ try {
 
 );
 
-client.login(
-process.env.TOKEN
-);
+client.login(process.env.TOKEN);
