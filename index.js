@@ -136,6 +136,72 @@ async function tempReply(
 }
 
 // ======================================================
+// CONTRACTS
+// ======================================================
+
+const contracts = [
+
+  {
+    company: "Tesco",
+    bonusPoints: 1,
+    priorityChance: 0.35
+  },
+
+  {
+    company: "Aldi",
+    bonusPoints: 1,
+    priorityChance: 0.20
+  },
+
+  {
+    company: "Lidl",
+    bonusPoints: 1,
+    priorityChance: 0.20
+  },
+
+  {
+    company: "Sainsbury's",
+    bonusPoints: 2,
+    priorityChance: 0.15
+  },
+
+  {
+    company: "IKEA",
+    bonusPoints: 2,
+    priorityChance: 0.10
+  }
+
+];
+
+// ======================================================
+// INCIDENT SEVERITY
+// ======================================================
+
+const severityLevels = [
+
+  {
+    name: "MINOR",
+    stockLoss: 15
+  },
+
+  {
+    name: "MAJOR",
+    stockLoss: 30
+  },
+
+  {
+    name: "CRITICAL",
+    stockLoss: 50
+  },
+
+  {
+    name: "NATIONAL SUPPLY CRISIS",
+    stockLoss: 70
+  }
+
+];
+
+// ======================================================
 // ALERT SCENARIOS
 // ======================================================
 
@@ -432,6 +498,33 @@ function groupStores() {
 
 function getSmartStore(rdc) {
 
+  // multi-stage incident escalation
+
+  if (
+    activeEmergency &&
+    Math.random() < 0.25
+  ) {
+
+    const nearbyStores =
+      stores.filter(
+        store =>
+          store.region ===
+          activeEmergency.store.region &&
+          store.name !==
+          activeEmergency.store.name
+      );
+
+    nearbyStores.forEach(store => {
+
+      store.stock = Math.max(
+        0,
+        store.stock - 10
+      );
+
+    });
+
+  }
+
   if (activeEmergency) {
 
     return activeEmergency.store;
@@ -486,11 +579,42 @@ function getSmartStore(rdc) {
   const topChoices =
     filtered.slice(0, 5);
 
+  const weightedChoices =
+    topChoices.sort(
+      (a, b) => {
+
+        const aContract =
+          contracts.find(
+            c =>
+              c.company ===
+              a.company
+          );
+
+        const bContract =
+          contracts.find(
+            c =>
+              c.company ===
+              b.company
+          );
+
+        const aWeight =
+          a.stock -
+          ((aContract?.priorityChance || 0) * 100);
+
+        const bWeight =
+          b.stock -
+          ((bContract?.priorityChance || 0) * 100);
+
+        return aWeight - bWeight;
+
+      }
+    );
+
   const chosen =
-    topChoices[
+    weightedChoices[
       Math.floor(
         Math.random() *
-        topChoices.length
+        weightedChoices.length
       )
     ];
 
@@ -550,10 +674,19 @@ async function triggerEmergencyEvent() {
       )
     ];
 
+  const severity =
+    severityLevels[
+      Math.floor(
+        Math.random() *
+        severityLevels.length
+      )
+    ];
+
   store.stock =
     Math.max(
       0,
-      store.stock - 35
+      store.stock -
+      severity.stockLoss
     );
 
   activeEmergency = {
@@ -576,6 +709,9 @@ ${store.name}
 
 🌍 REGION:
 ${store.region}
+
+🚨 SEVERITY:
+${severity.name}
 
 📉 IMPACT:
 ${scenario.impact}
@@ -1075,7 +1211,14 @@ ${interaction.values[0]}`
               jobType.stockBoost,
 
             points:
-              jobType.points
+              jobType.points +
+              (
+                contracts.find(
+                  c =>
+                    c.company ===
+                    store.company
+                )?.bonusPoints || 0
+              )
 
           });
 
