@@ -31,6 +31,8 @@ const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
 
 const LEADERBOARD_CHANNEL_ID = "1497941626260295803";
 
+const ALERTS_CHANNEL_ID = "1497948012603904000";
+
 // ======================================================
 // SAVE FILES
 // ======================================================
@@ -148,7 +150,7 @@ let driverStats =
   );
 
 // ======================================================
-// EMERGENCY EVENTS
+// EMERGENCY
 // ======================================================
 
 let activeEmergency =
@@ -459,6 +461,41 @@ function getRdcRegion(
 }
 
 // ======================================================
+// ALERT POSTING
+// ======================================================
+
+async function sendAlert(
+  message
+) {
+
+  try {
+
+    const channel =
+      await client.channels.fetch(
+        ALERTS_CHANNEL_ID
+      );
+
+    if (!channel)
+      return;
+
+    await channel.send(
+      message
+    );
+
+  } catch (
+    error
+  ) {
+
+    console.error(
+      "Alert error:",
+      error
+    );
+
+  }
+
+}
+
+// ======================================================
 // SMART DISPATCH
 // ======================================================
 
@@ -466,13 +503,11 @@ function getSmartStore(
   rdc
 ) {
 
-  // emergency override
-
   if (
     activeEmergency
   ) {
 
-    return activeEmergency;
+    return activeEmergency.store;
 
   }
 
@@ -553,10 +588,14 @@ function groupStores() {
 }
 
 // ======================================================
-// EMERGENCY EVENT SYSTEM
+// EMERGENCY EVENTS
 // ======================================================
 
-function triggerEmergencyEvent() {
+async function triggerEmergencyEvent() {
+
+  if (
+    activeEmergency
+  ) return;
 
   const randomStore =
     stores[
@@ -580,11 +619,33 @@ function triggerEmergencyEvent() {
 
   ];
 
+  const impacts = [
+
+    "Critical stock depletion detected.",
+
+    "Regional supply instability reported.",
+
+    "Inbound delivery disruption confirmed.",
+
+    "Emergency replenishment required.",
+
+    "Distribution chain interruption detected."
+
+  ];
+
   const event =
     events[
       Math.floor(
         Math.random() *
         events.length
+      )
+    ];
+
+  const impact =
+    impacts[
+      Math.floor(
+        Math.random() *
+        impacts.length
       )
     ];
 
@@ -595,25 +656,71 @@ function triggerEmergencyEvent() {
       35
     );
 
-  activeEmergency =
-    randomStore;
+  activeEmergency = {
 
-  console.log(
-    `EMERGENCY EVENT:
+    event,
+    impact,
+    store:
+      randomStore
+
+  };
+
+  await sendAlert(
+
+`🚨 SUPPLY CHAIN ALERT
+━━━━━━━━━━━━━━━━━━
+
+⚠ EVENT:
 ${event}
-${randomStore.name}`
+
+🏪 AFFECTED STORE:
+${randomStore.name}
+
+🌍 REGION:
+${randomStore.region}
+
+📉 IMPACT:
+${impact}
+
+📦 CURRENT STOCK:
+${randomStore.stock}%
+
+🚛 ACTION REQUIRED:
+Priority restock dispatch recommended.
+
+━━━━━━━━━━━━━━━━━━`
+
   );
 
-  setTimeout(() => {
+  setTimeout(
+    async () => {
 
-    activeEmergency =
-      null;
+      await sendAlert(
 
-    console.log(
-      "Emergency cleared."
-    );
+`✅ INCIDENT RESOLVED
+━━━━━━━━━━━━━━━━━━
 
-  }, 3600000);
+🏪 STORE:
+${randomStore.name}
+
+📦 STATUS:
+Emergency priority cleared.
+
+Operations stabilised.
+
+━━━━━━━━━━━━━━━━━━`
+
+      );
+
+      activeEmergency =
+        null;
+
+      await updateStockBoard();
+
+    },
+
+    3600000
+  );
 
 }
 
@@ -670,8 +777,6 @@ async function updateStockBoard() {
 
 `;
 
-    // emergency banner
-
     if (
       activeEmergency
     ) {
@@ -679,9 +784,12 @@ async function updateStockBoard() {
       content +=
 `🚨 ACTIVE EMERGENCY
 ━━━━━━━━━━━━━━━━━━
-${activeEmergency.name}
 
-PRIORITY RESTOCK REQUIRED
+${activeEmergency.store.name}
+
+⚠ ${activeEmergency.event}
+
+Priority dispatch required.
 
 `;
 
@@ -1052,9 +1160,6 @@ setInterval(
             12
           ) + 4;
 
-        // london stores
-        // drain faster
-
         if (
           store.name.includes(
             "London"
@@ -1075,15 +1180,12 @@ setInterval(
       }
     );
 
-    // 30% chance
-    // of emergency
-
     if (
       Math.random() <
       0.3
     ) {
 
-      triggerEmergencyEvent();
+      await triggerEmergencyEvent();
 
     }
 
@@ -1210,7 +1312,7 @@ ${interaction.values[0]}`
           const emergency =
             activeEmergency &&
             store.name ===
-            activeEmergency.name;
+            activeEmergency.store.name;
 
           const jobId =
             "J-" +
@@ -1429,14 +1531,31 @@ IN TRANSIT
             activeJobs
           );
 
-          // clear emergency
-          // after delivery
-
           if (
             activeEmergency &&
-            activeEmergency.name ===
+            activeEmergency.store.name ===
             store.name
           ) {
+
+            await sendAlert(
+
+`✅ EMERGENCY RESTOCK COMPLETED
+━━━━━━━━━━━━━━━━━━
+
+🏪 STORE:
+${store.name}
+
+🚛 DELIVERY STATUS:
+Priority dispatch completed.
+
+📦 UPDATED STOCK:
+${store.stock}%
+
+Operations stabilised.
+
+━━━━━━━━━━━━━━━━━━`
+
+            );
 
             activeEmergency =
               null;
