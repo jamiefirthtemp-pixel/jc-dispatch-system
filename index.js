@@ -913,6 +913,23 @@ ${incident.pickupRdc}
 
       if (interaction.customId.startsWith("complete_")) {
         const dispatchId = interaction.customId.replace("complete_", "");
+
+        const dispatch = state.dispatches.find(d => d.id === dispatchId);
+
+        if (!dispatch) {
+          return tempReply(interaction, "❌ Dispatch not found.");
+        }
+
+        const isOwner = dispatch.userId === interaction.user.id;
+        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+
+        if (!isOwner && !isAdmin) {
+          return tempReply(
+            interaction,
+            "❌ Only the assigned driver or an administrator can complete this dispatch."
+          );
+        }
+
         return completeDispatch(dispatchId, interaction);
       }
     }
