@@ -193,6 +193,10 @@ const rdcs = [
 
 const stores = [
 
+  // ======================================================
+  // TESCO
+  // ======================================================
+
   {
     name: "Tesco - Dublin",
     stock: 70,
@@ -284,6 +288,10 @@ const stores = [
     company: "Tesco"
   },
 
+  // ======================================================
+  // ALDI
+  // ======================================================
+
   {
     name: "Aldi - Porthmadog",
     stock: 70,
@@ -318,6 +326,10 @@ const stores = [
     region: "South England",
     company: "Aldi"
   },
+
+  // ======================================================
+  // LIDL
+  // ======================================================
 
   {
     name: "Lidl - Perth",
@@ -366,6 +378,107 @@ const stores = [
     stock: 70,
     region: "Northern Ireland",
     company: "Lidl"
+  },
+
+  // ======================================================
+  // SAINSBURY'S
+  // ======================================================
+
+  {
+    name: "Sainsbury's - Exeter",
+    stock: 70,
+    region: "South England",
+    company: "Sainsbury's"
+  },
+
+  {
+    name: "Sainsbury's - Newport",
+    stock: 70,
+    region: "Wales",
+    company: "Sainsbury's"
+  },
+
+  {
+    name: "Sainsbury's - Lisburn",
+    stock: 70,
+    region: "Northern Ireland",
+    company: "Sainsbury's"
+  },
+
+  // ======================================================
+  // IKEA
+  // ======================================================
+
+  {
+    name: "IKEA - Croydon",
+    stock: 70,
+    region: "South England",
+    company: "IKEA"
+  },
+
+  {
+    name: "IKEA - Douglas",
+    stock: 70,
+    region: "Isle of Man",
+    company: "IKEA"
+  },
+
+  {
+    name: "IKEA - Dublin",
+    stock: 70,
+    region: "Ireland",
+    company: "IKEA"
+  },
+
+  // ======================================================
+  // DREAMS
+  // ======================================================
+
+  {
+    name: "Dreams - Exeter",
+    stock: 70,
+    region: "South England",
+    company: "Dreams"
+  },
+
+  // ======================================================
+  // HOMEBASE
+  // ======================================================
+
+  {
+    name: "Homebase - Exeter",
+    stock: 70,
+    region: "South England",
+    company: "Homebase"
+  },
+
+  {
+    name: "Homebase - Plymouth",
+    stock: 70,
+    region: "South England",
+    company: "Homebase"
+  },
+
+  // ======================================================
+  // MCDONALD'S
+  // ======================================================
+
+  {
+    name: "McDonald's - London",
+    stock: 70,
+    region: "South England",
+    company: "McDonald's"
+  },
+
+  // ======================================================
+  // HAWES MARKETPLACE
+  // ======================================================
+
+  {
+    name: "Hawes Marketplace - Hawes",
+    stock: 70,
+    region: "North England",
+    company: "Hawes Marketplace"
   }
 
 ];
@@ -461,7 +574,7 @@ function getRdcRegion(
 }
 
 // ======================================================
-// ALERT POSTING
+// ALERTS
 // ======================================================
 
 async function sendAlert(
@@ -692,959 +805,4 @@ Priority restock dispatch recommended.
 
   );
 
-  setTimeout(
-    async () => {
-
-      await sendAlert(
-
-`✅ INCIDENT RESOLVED
-━━━━━━━━━━━━━━━━━━
-
-🏪 STORE:
-${randomStore.name}
-
-📦 STATUS:
-Emergency priority cleared.
-
-Operations stabilised.
-
-━━━━━━━━━━━━━━━━━━`
-
-      );
-
-      activeEmergency =
-        null;
-
-      await updateStockBoard();
-
-    },
-
-    3600000
-  );
-
 }
-
-// ======================================================
-// STOCK BOARD
-// ======================================================
-
-async function updateStockBoard() {
-
-  try {
-
-    const channel =
-      await client.channels.fetch(
-        STOCK_CHANNEL_ID
-      );
-
-    if (!channel)
-      return;
-
-    const grouped =
-      groupStores();
-
-    let critical = 0;
-    let low = 0;
-
-    stores.forEach(
-      store => {
-
-        if (
-          store.stock <= 30
-        ) {
-
-          critical++;
-
-        } else if (
-          store.stock <= 60
-        ) {
-
-          low++;
-
-        }
-
-      }
-    );
-
-    let content =
-`╔════════════════════════╗
-      JC LOGISTICS
-        STOCK BOARD
-╚════════════════════════╝
-
-🔴 Critical Stores: ${critical}
-🟡 Low Stock Stores: ${low}
-
-`;
-
-    if (
-      activeEmergency
-    ) {
-
-      content +=
-`🚨 ACTIVE EMERGENCY
-━━━━━━━━━━━━━━━━━━
-
-${activeEmergency.store.name}
-
-⚠ ${activeEmergency.event}
-
-Priority dispatch required.
-
-`;
-
-    }
-
-    Object.keys(
-      grouped
-    ).forEach(
-      company => {
-
-        content +=
-`📦 ${company}
-━━━━━━━━━━━━━━━━━━
-`;
-
-        const sorted =
-          grouped[
-            company
-          ].sort(
-            (
-              a,
-              b
-            ) =>
-              a.stock -
-              b.stock
-          );
-
-        sorted.forEach(
-          store => {
-
-            const icon =
-              getStatus(
-                store.stock
-              );
-
-            const short =
-              store.name.split(
-                " - "
-              )[1];
-
-            const dots =
-              ".".repeat(
-                Math.max(
-                  1,
-                  18 -
-                  short.length
-                )
-              );
-
-            content +=
-`${icon} ${short} ${dots} ${store.stock}%
-`;
-
-          }
-        );
-
-        content += "\n";
-
-      }
-    );
-
-    const messages =
-      await channel.messages.fetch(
-        {
-          limit: 10
-        }
-      );
-
-    const existing =
-      messages.find(
-        m =>
-          m.author.id ===
-          client.user.id
-      );
-
-    if (existing) {
-
-      await existing.edit(
-        content
-      );
-
-    } else {
-
-      await channel.send(
-        content
-      );
-
-    }
-
-  } catch (
-    error
-  ) {
-
-    console.error(
-      error
-    );
-
-  }
-
-}
-
-// ======================================================
-// LEADERBOARD
-// ======================================================
-
-async function updateLeaderboard() {
-
-  try {
-
-    const channel =
-      await client.channels.fetch(
-        LEADERBOARD_CHANNEL_ID
-      );
-
-    if (!channel)
-      return;
-
-    const sorted =
-      Object.entries(
-        driverStats
-      ).sort(
-        (
-          a,
-          b
-        ) =>
-          b[1] - a[1]
-      );
-
-    let content =
-`🏆 JC LOGISTICS LEADERBOARD
-
-`;
-
-    if (
-      sorted.length === 0
-    ) {
-
-      content +=
-`No completed deliveries yet.`;
-
-    } else {
-
-      sorted.forEach(
-        (
-          [
-            userId,
-            count
-          ],
-          index
-        ) => {
-
-          let medal =
-            "▫️";
-
-          if (
-            index === 0
-          )
-            medal =
-              "🥇";
-
-          if (
-            index === 1
-          )
-            medal =
-              "🥈";
-
-          if (
-            index === 2
-          )
-            medal =
-              "🥉";
-
-          content +=
-`${medal} <@${userId}> — ${count} deliveries
-`;
-
-        }
-      );
-
-    }
-
-    const messages =
-      await channel.messages.fetch(
-        {
-          limit: 10
-        }
-      );
-
-    const existing =
-      messages.find(
-        m =>
-          m.author.id ===
-          client.user.id
-      );
-
-    if (existing) {
-
-      await existing.edit(
-        content
-      );
-
-    } else {
-
-      await channel.send(
-        content
-      );
-
-    }
-
-  } catch (
-    error
-  ) {
-
-    console.error(
-      error
-    );
-
-  }
-
-}
-
-// ======================================================
-// TERMINAL
-// ======================================================
-
-async function createDispatchTerminal() {
-
-  try {
-
-    const channel =
-      await client.channels.fetch(
-        JOB_CHANNEL_ID
-      );
-
-    if (!channel)
-      return;
-
-    const menu =
-      new StringSelectMenuBuilder()
-
-        .setCustomId(
-          "rdc_select"
-        )
-
-        .setPlaceholder(
-          "Select RDC"
-        )
-
-        .addOptions(
-
-          rdcs.map(
-            rdc => ({
-
-              label:
-                rdc,
-
-              value:
-                rdc
-
-            })
-          )
-
-        );
-
-    const row1 =
-      new ActionRowBuilder()
-        .addComponents(
-          menu
-        );
-
-    const row2 =
-      new ActionRowBuilder()
-        .addComponents(
-
-          new ButtonBuilder()
-
-            .setCustomId(
-              "generate_job"
-            )
-
-            .setLabel(
-              "Generate Dispatch"
-            )
-
-            .setStyle(
-              ButtonStyle.Primary
-            )
-
-        );
-
-    const content =
-`┌──────────────────────────────┐
-     JC LOGISTICS TERMINAL
-└──────────────────────────────┘
-
-Select RDC below
-then generate dispatch.
-`;
-
-    const messages =
-      await channel.messages.fetch(
-        {
-          limit: 10
-        }
-      );
-
-    const existing =
-      messages.find(
-        m =>
-          m.author.id ===
-          client.user.id
-      );
-
-    if (existing) {
-
-      await existing.edit({
-
-        content,
-
-        components: [
-          row1,
-          row2
-        ]
-
-      });
-
-    } else {
-
-      await channel.send({
-
-        content,
-
-        components: [
-          row1,
-          row2
-        ]
-
-      });
-
-    }
-
-  } catch (
-    error
-  ) {
-
-    console.error(
-      error
-    );
-
-  }
-
-}
-
-// ======================================================
-// STOCK DRAIN
-// ======================================================
-
-setInterval(
-
-  async () => {
-
-    stores.forEach(
-      store => {
-
-        let drain =
-          Math.floor(
-            Math.random() *
-            12
-          ) + 4;
-
-        if (
-          store.name.includes(
-            "London"
-          )
-        ) {
-
-          drain += 8;
-
-        }
-
-        store.stock =
-          Math.max(
-            0,
-            store.stock -
-            drain
-          );
-
-      }
-    );
-
-    if (
-      Math.random() <
-      0.3
-    ) {
-
-      await triggerEmergencyEvent();
-
-    }
-
-    await updateStockBoard();
-
-  },
-
-  86400000
-);
-
-// ======================================================
-// READY
-// ======================================================
-
-client.once(
-  "ready",
-
-  async () => {
-
-    console.log(
-      `Bot online: ${client.user.tag}`
-    );
-
-    await createDispatchTerminal();
-
-    await updateStockBoard();
-
-    await updateLeaderboard();
-
-  }
-);
-
-// ======================================================
-// INTERACTIONS
-// ======================================================
-
-client.on(
-
-  "interactionCreate",
-
-  async interaction => {
-
-    try {
-
-      if (
-        interaction.isStringSelectMenu()
-      ) {
-
-        if (
-          interaction.customId ===
-          "rdc_select"
-        ) {
-
-          selectedRdc[
-            interaction.user.id
-          ] =
-            interaction.values[0];
-
-          return await tempReply(
-
-            interaction,
-
-`✅ RDC Selected
-
-${interaction.values[0]}`
-
-          );
-
-        }
-
-      }
-
-      if (
-        interaction.isButton()
-      ) {
-
-        // ==================================================
-        // GENERATE JOB
-        // ==================================================
-
-        if (
-          interaction.customId ===
-          "generate_job"
-        ) {
-
-          if (
-            activeDrivers[
-              interaction.user.id
-            ]
-          ) {
-
-            return await tempReply(
-
-              interaction,
-
-              "❌ You already have an active job."
-
-            );
-
-          }
-
-          const rdc =
-            selectedRdc[
-              interaction.user.id
-            ];
-
-          if (!rdc) {
-
-            return await tempReply(
-
-              interaction,
-
-              "❌ Select an RDC first."
-
-            );
-
-          }
-
-          const store =
-            getSmartStore(
-              rdc
-            );
-
-          const emergency =
-            activeEmergency &&
-            store.name ===
-            activeEmergency.store.name;
-
-          const jobId =
-            "J-" +
-
-            Math.floor(
-              Math.random() *
-              100000
-            );
-
-          activeDrivers[
-            interaction.user.id
-          ] = true;
-
-          activeJobs.push({
-
-            id:
-              jobId,
-
-            user:
-              interaction.user.id,
-
-            store:
-              store.name
-
-          });
-
-          saveData(
-            ACTIVE_DRIVERS_FILE,
-            activeDrivers
-          );
-
-          saveData(
-            ACTIVE_JOBS_FILE,
-            activeJobs
-          );
-
-          const row =
-            new ActionRowBuilder()
-
-              .addComponents(
-
-                new ButtonBuilder()
-
-                  .setCustomId(
-                    `complete_${jobId}`
-                  )
-
-                  .setLabel(
-                    "Complete Delivery"
-                  )
-
-                  .setStyle(
-                    ButtonStyle.Success
-                  )
-
-              );
-
-          const activeChannel =
-            await client.channels.fetch(
-              ACTIVE_JOBS_CHANNEL_ID
-            );
-
-          let priority =
-            "STANDARD";
-
-          if (
-            emergency
-          ) {
-
-            priority =
-              "🚨 EMERGENCY";
-
-          }
-
-          const content =
-`┌──────────────────────────────┐
-      ACTIVE DISPATCH
-└──────────────────────────────┘
-
-👤 DRIVER:
-<@${interaction.user.id}>
-
-🚚 JOB ID:
-${jobId}
-
-🏭 RDC:
-${rdc}
-
-🌍 REGION:
-${store.region}
-
-🏪 STORE:
-${store.name}
-
-⚠ PRIORITY:
-${priority}
-
-📦 STOCK:
-${store.stock}%
-
-📋 STATUS:
-IN TRANSIT
-`;
-
-          if (
-            activeChannel
-          ) {
-
-            await activeChannel.send({
-
-              content,
-
-              components:
-                [row]
-
-            });
-
-          }
-
-          await tempReply(
-
-            interaction,
-
-            "✅ Dispatch generated."
-
-          );
-
-        }
-
-        // ==================================================
-        // COMPLETE DELIVERY
-        // ==================================================
-
-        if (
-          interaction.customId.startsWith(
-            "complete_"
-          )
-        ) {
-
-          const jobId =
-            interaction.customId.split(
-              "_"
-            )[1];
-
-          const job =
-            activeJobs.find(
-              j =>
-                j.id ===
-                jobId
-            );
-
-          if (!job) {
-
-            return await tempReply(
-
-              interaction,
-
-              "❌ Job not found."
-
-            );
-
-          }
-
-          const store =
-            stores.find(
-              s =>
-                s.name ===
-                job.store
-            );
-
-          store.stock =
-            Math.min(
-              100,
-              store.stock + 25
-            );
-
-          delete activeDrivers[
-            job.user
-          ];
-
-          activeJobs =
-            activeJobs.filter(
-              j =>
-                j.id !==
-                jobId
-            );
-
-          if (
-            !driverStats[
-              job.user
-            ]
-          ) {
-
-            driverStats[
-              job.user
-            ] = 0;
-
-          }
-
-          driverStats[
-            job.user
-          ]++;
-
-          saveData(
-            DRIVER_STATS_FILE,
-            driverStats
-          );
-
-          saveData(
-            ACTIVE_DRIVERS_FILE,
-            activeDrivers
-          );
-
-          saveData(
-            ACTIVE_JOBS_FILE,
-            activeJobs
-          );
-
-          if (
-            activeEmergency &&
-            activeEmergency.store.name ===
-            store.name
-          ) {
-
-            await sendAlert(
-
-`✅ EMERGENCY RESTOCK COMPLETED
-━━━━━━━━━━━━━━━━━━
-
-🏪 STORE:
-${store.name}
-
-🚛 DELIVERY STATUS:
-Priority dispatch completed.
-
-📦 UPDATED STOCK:
-${store.stock}%
-
-Operations stabilised.
-
-━━━━━━━━━━━━━━━━━━`
-
-            );
-
-            activeEmergency =
-              null;
-
-          }
-
-          await updateStockBoard();
-
-          await updateLeaderboard();
-
-          const disabledRow =
-            new ActionRowBuilder()
-
-              .addComponents(
-
-                new ButtonBuilder()
-
-                  .setCustomId(
-                    `complete_${jobId}`
-                  )
-
-                  .setLabel(
-                    "Delivery Complete"
-                  )
-
-                  .setStyle(
-                    ButtonStyle.Secondary
-                  )
-
-                  .setDisabled(
-                    true
-                  )
-
-              );
-
-          await interaction.update({
-
-            content:
-`┌──────────────────────────────┐
-      DELIVERY COMPLETE
-└──────────────────────────────┘
-
-👤 DRIVER:
-<@${job.user}>
-
-🚚 JOB ID:
-${jobId}
-
-🏪 STORE:
-${store.name}
-
-📦 UPDATED STOCK:
-${store.stock}%
-
-📋 STATUS:
-COMPLETE
-
-📈 DRIVER COMPLETIONS:
-${driverStats[job.user]}
-`,
-
-            components: [
-              disabledRow
-            ]
-
-          });
-
-        }
-
-      }
-
-    } catch (
-      error
-    ) {
-
-      console.error(
-        "INTERACTION ERROR:",
-        error
-      );
-
-    }
-
-  }
-);
-
-// ======================================================
-// LOGIN
-// ======================================================
-
-client.login(
-  process.env.TOKEN
-);
