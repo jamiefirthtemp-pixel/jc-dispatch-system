@@ -1,5 +1,7 @@
 require("dotenv").config();
 
+const fs = require("fs");
+
 const {
   Client,
   GatewayIntentBits,
@@ -10,10 +12,49 @@ const {
 } = require("discord.js");
 
 // ======================================================
+// CLIENT
+// ======================================================
+
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds]
+});
+
+// ======================================================
+// CHANNEL CONFIG
+// ======================================================
+
+const JOB_CHANNEL_ID = "1497716778791342120";
+
+const STOCK_CHANNEL_ID = "1497749476234760342";
+
+const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
+
+const DRIVER_STATS_CHANNEL_ID = "1497749336321429534";
+
+const LEADERBOARD_CHANNEL_ID = "1497941626260295803";
+
+// ======================================================
+// SAVE FILES
+// ======================================================
+
+const DRIVER_STATS_FILE =
+  "./driverStats.json";
+
+const ACTIVE_DRIVERS_FILE =
+  "./activeDrivers.json";
+
+const ACTIVE_JOBS_FILE =
+  "./activeJobs.json";
+
+// ======================================================
 // TEMP EPHEMERAL REPLY
 // ======================================================
 
-async function tempReply(interaction, content, time = 3000) {
+async function tempReply(
+  interaction,
+  content,
+  time = 3000
+) {
 
   await interaction.reply({
 
@@ -35,22 +76,72 @@ async function tempReply(interaction, content, time = 3000) {
 }
 
 // ======================================================
-// CLIENT
+// SAVE / LOAD
 // ======================================================
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
-});
+function loadData(file, fallback) {
+
+  try {
+
+    if (
+      fs.existsSync(file)
+    ) {
+
+      return JSON.parse(
+        fs.readFileSync(file)
+      );
+
+    }
+
+    return fallback;
+
+  } catch {
+
+    return fallback;
+
+  }
+
+}
+
+function saveData(file, data) {
+
+  fs.writeFileSync(
+
+    file,
+
+    JSON.stringify(
+      data,
+      null,
+      2
+    )
+
+  );
+
+}
 
 // ======================================================
-// CONFIG
+// LOAD SAVED DATA
 // ======================================================
 
-const JOB_CHANNEL_ID = "1497716778791342120";
+let selectedRdc = {};
 
-const STOCK_CHANNEL_ID = "1497749476234760342";
+let activeDrivers =
+  loadData(
+    ACTIVE_DRIVERS_FILE,
+    {}
+  );
 
-const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
+let activeJobs =
+  loadData(
+    ACTIVE_JOBS_FILE,
+    []
+  );
+
+let driverStats =
+  loadData(
+    DRIVER_STATS_FILE,
+    {}
+  );
 
 // ======================================================
 // RDCS
@@ -89,8 +180,6 @@ const rdcs = [
 
 const stores = [
 
-  // TESCO
-
   { name: "Tesco - Dublin", stock: 70 },
   { name: "Tesco - Belfast", stock: 70 },
   { name: "Tesco - Antrim", stock: 70 },
@@ -105,15 +194,11 @@ const stores = [
   { name: "Tesco - Ullapool", stock: 70 },
   { name: "Tesco - Stornoway", stock: 70 },
 
-  // ALDI
-
   { name: "Aldi - Porthmadog", stock: 70 },
   { name: "Aldi - Waterford", stock: 70 },
   { name: "Aldi - Sheffield", stock: 70 },
   { name: "Aldi - Newcastle", stock: 70 },
   { name: "Aldi - London", stock: 70 },
-
-  // LIDL
 
   { name: "Lidl - Perth", stock: 70 },
   { name: "Lidl - Edinburgh", stock: 70 },
@@ -123,45 +208,24 @@ const stores = [
   { name: "Lidl - Canterbury", stock: 70 },
   { name: "Lidl - Antrim", stock: 70 },
 
-  // SAINSBURY'S
-
   { name: "Sainsbury's - Exeter", stock: 70 },
   { name: "Sainsbury's - Newport", stock: 70 },
   { name: "Sainsbury's - Lisburn", stock: 70 },
-
-  // IKEA
 
   { name: "IKEA - Croydon", stock: 70 },
   { name: "IKEA - Douglas", stock: 70 },
   { name: "IKEA - Dublin", stock: 70 },
 
-  // DREAMS
-
   { name: "Dreams - Exeter", stock: 70 },
-
-  // HOMEBASE
 
   { name: "Homebase - Exeter", stock: 70 },
   { name: "Homebase - Plymouth", stock: 70 },
 
-  // MCDONALDS
-
   { name: "McDonald's - London", stock: 70 },
-
-  // HAWES MARKETPLACE
 
   { name: "Hawes Marketplace - Hawes", stock: 70 }
 
 ];
-
-// ======================================================
-// DATA
-// ======================================================
-
-let selectedRdc = {};
-let activeDrivers = {};
-let activeJobs = [];
-let driverStats = {};
 
 // ======================================================
 // STATUS
@@ -169,11 +233,13 @@ let driverStats = {};
 
 function getStatus(stock) {
 
-  if (stock <= 30) return "🔴 CRITICAL";
+  if (stock <= 30)
+    return "🔴";
 
-  if (stock <= 60) return "🟡 LOW";
+  if (stock <= 60)
+    return "🟡";
 
-  return "🟢 HEALTHY";
+  return "🟢";
 
 }
 
@@ -188,15 +254,20 @@ function groupStores() {
   stores.forEach(store => {
 
     const company =
-      store.name.split(" - ")[0];
+      store.name.split(
+        " - "
+      )[0];
 
     if (!grouped[company]) {
 
-      grouped[company] = [];
+      grouped[company] =
+        [];
 
     }
 
-    grouped[company].push(store);
+    grouped[
+      company
+    ].push(store);
 
   });
 
@@ -205,40 +276,7 @@ function groupStores() {
 }
 
 // ======================================================
-// STOCK DEPLETION
-// ======================================================
-
-setInterval(async () => {
-
-  stores.forEach(store => {
-
-    store.stock = Math.max(
-      0,
-      Math.floor(store.stock * 0.86)
-    );
-
-  });
-
-  await updateStockBoard();
-
-  console.log(
-    "14% stock depletion complete."
-  );
-
-}, 86400000);
-
-// ======================================================
-// AUTO STOCK UPDATE EVERY 5 MINS
-// ======================================================
-
-setInterval(async () => {
-
-  await updateStockBoard();
-
-}, 300000);
-
-// ======================================================
-// STOCK BOARD
+// UPDATE STOCK BOARD
 // ======================================================
 
 async function updateStockBoard() {
@@ -255,30 +293,26 @@ async function updateStockBoard() {
     const grouped =
       groupStores();
 
-    // =========================================
-    // COUNTERS
-    // =========================================
-
-    let criticalCount = 0;
-    let lowCount = 0;
+    let critical = 0;
+    let low = 0;
 
     stores.forEach(store => {
 
-      if (store.stock <= 30) {
+      if (
+        store.stock <= 30
+      ) {
 
-        criticalCount++;
+        critical++;
 
-      } else if (store.stock <= 60) {
+      } else if (
+        store.stock <= 60
+      ) {
 
-        lowCount++;
+        low++;
 
       }
 
     });
-
-    // =========================================
-    // HEADER
-    // =========================================
 
     let content =
 `╔════════════════════════╗
@@ -286,78 +320,74 @@ async function updateStockBoard() {
         STOCK BOARD
 ╚════════════════════════╝
 
-🔴 Critical Stores: ${criticalCount}
-🟡 Low Stock Stores: ${lowCount}
+🔴 Critical Stores: ${critical}
+🟡 Low Stock Stores: ${low}
 
 `;
 
-    // =========================================
-    // COMPANY SECTIONS
-    // =========================================
+    Object.keys(grouped)
+      .forEach(company => {
 
-    Object.keys(grouped).forEach(company => {
-
-      content +=
+        content +=
 `📦 ${company}
 ━━━━━━━━━━━━━━━━━━
 `;
 
-      const sortedStores =
-        grouped[company].sort(
-          (a, b) =>
-            a.stock - b.stock
-        );
-
-      sortedStores.forEach(store => {
-
-        let icon = "🟢";
-
-        if (store.stock <= 30) {
-
-          icon = "🔴";
-
-        } else if (
-          store.stock <= 60
-        ) {
-
-          icon = "🟡";
-
-        }
-
-        const shortName =
-          store.name.split(" - ")[1];
-
-        const dots =
-          ".".repeat(
-            Math.max(
-              1,
-              18 - shortName.length
-            )
+        const sorted =
+          grouped[
+            company
+          ].sort(
+            (a, b) =>
+              a.stock -
+              b.stock
           );
 
-        content +=
-`${icon} ${shortName} ${dots} ${store.stock}%
+        sorted.forEach(
+          store => {
+
+            const icon =
+              getStatus(
+                store.stock
+              );
+
+            const short =
+              store.name.split(
+                " - "
+              )[1];
+
+            const dots =
+              ".".repeat(
+                Math.max(
+                  1,
+                  18 -
+                  short.length
+                )
+              );
+
+            content +=
+`${icon} ${short} ${dots} ${store.stock}%
 `;
+
+          }
+        );
+
+        content += "\n";
 
       });
 
-      content += "\n";
-
-    });
-
-    // =========================================
-    // TIMESTAMP
-    // =========================================
-
-    const now = new Date();
+    const now =
+      new Date();
 
     const time =
       now.toLocaleTimeString(
         "en-GB",
         {
 
-          hour: "2-digit",
-          minute: "2-digit"
+          hour:
+            "2-digit",
+
+          minute:
+            "2-digit"
 
         }
       );
@@ -365,14 +395,10 @@ async function updateStockBoard() {
     content +=
 `🕒 Updated: ${time}`;
 
-    // =========================================
-    // UPDATE MESSAGE
-    // =========================================
-
     const messages =
-      await channel.messages.fetch({
-        limit: 10
-      });
+      await channel.messages.fetch(
+        { limit: 10 }
+      );
 
     const existing =
       messages.find(
@@ -383,11 +409,15 @@ async function updateStockBoard() {
 
     if (existing) {
 
-      await existing.edit(content);
+      await existing.edit(
+        content
+      );
 
     } else {
 
-      await channel.send(content);
+      await channel.send(
+        content
+      );
 
     }
 
@@ -399,6 +429,177 @@ async function updateStockBoard() {
     );
 
   }
+
+}
+
+// ======================================================
+// LEADERBOARD
+// ======================================================
+
+async function updateLeaderboard() {
+
+  try {
+
+    const channel =
+      await client.channels.fetch(
+        LEADERBOARD_CHANNEL_ID
+      );
+
+    if (!channel) return;
+
+    const sorted =
+      Object.entries(
+        driverStats
+      ).sort(
+        (
+          a,
+          b
+        ) =>
+          b[1] - a[1]
+      );
+
+    let content =
+`🏆 JC LOGISTICS LEADERBOARD
+
+`;
+
+    if (
+      sorted.length === 0
+    ) {
+
+      content +=
+`No completed deliveries yet.`;
+
+    } else {
+
+      sorted.forEach(
+        (
+          [
+            userId,
+            count
+          ],
+          index
+        ) => {
+
+          let medal =
+            "▫️";
+
+          if (
+            index === 0
+          )
+            medal =
+              "🥇";
+
+          if (
+            index === 1
+          )
+            medal =
+              "🥈";
+
+          if (
+            index === 2
+          )
+            medal =
+              "🥉";
+
+          content +=
+`${medal} <@${userId}> — ${count} deliveries
+`;
+
+        }
+      );
+
+    }
+
+    const messages =
+      await channel.messages.fetch(
+        { limit: 10 }
+      );
+
+    const existing =
+      messages.find(
+        m =>
+          m.author.id ===
+          client.user.id
+      );
+
+    if (existing) {
+
+      await existing.edit(
+        content
+      );
+
+    } else {
+
+      await channel.send(
+        content
+      );
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Leaderboard error:",
+      error
+    );
+
+  }
+
+}
+
+// ======================================================
+// SMART DISPATCH
+// ======================================================
+
+function getSmartStore(
+  rdc
+) {
+
+  let filtered =
+    [...stores];
+
+  // Scotland RDCs
+
+  if (
+    rdc.includes(
+      "Aberdeen"
+    ) ||
+    rdc.includes(
+      "Ullapool"
+    ) ||
+    rdc.includes(
+      "Oban"
+    )
+  ) {
+
+    filtered =
+      stores.filter(
+        s =>
+          s.name.includes(
+            "Perth"
+          ) ||
+          s.name.includes(
+            "Edinburgh"
+          ) ||
+          s.name.includes(
+            "Ullapool"
+          ) ||
+          s.name.includes(
+            "Stornoway"
+          ) ||
+          s.name.includes(
+            "Dumfries"
+          )
+      );
+
+  }
+
+  return filtered.sort(
+    (a, b) =>
+      a.stock -
+      b.stock
+  )[0];
 
 }
 
@@ -415,12 +616,15 @@ async function createDispatchTerminal() {
         JOB_CHANNEL_ID
       );
 
-    if (!channel) return;
+    if (!channel)
+      return;
 
     const menu =
       new StringSelectMenuBuilder()
 
-        .setCustomId("rdc_select")
+        .setCustomId(
+          "rdc_select"
+        )
 
         .setPlaceholder(
           "Select RDC"
@@ -428,19 +632,25 @@ async function createDispatchTerminal() {
 
         .addOptions(
 
-          rdcs.map(rdc => ({
+          rdcs.map(
+            rdc => ({
 
-            label: rdc,
+              label:
+                rdc,
 
-            value: rdc
+              value:
+                rdc
 
-          }))
+            })
+          )
 
         );
 
     const row1 =
       new ActionRowBuilder()
-        .addComponents(menu);
+        .addComponents(
+          menu
+        );
 
     const row2 =
       new ActionRowBuilder()
@@ -472,9 +682,9 @@ then generate dispatch.
 `;
 
     const messages =
-      await channel.messages.fetch({
-        limit: 10
-      });
+      await channel.messages.fetch(
+        { limit: 10 }
+      );
 
     const existing =
       messages.find(
@@ -523,27 +733,74 @@ then generate dispatch.
 }
 
 // ======================================================
+// STOCK DEPLETION
+// ======================================================
+
+setInterval(
+  async () => {
+
+    stores.forEach(
+      store => {
+
+        const random =
+          Math.floor(
+            Math.random() *
+            10
+          );
+
+        store.stock =
+          Math.max(
+            0,
+
+            Math.floor(
+              store.stock -
+              (
+                5 +
+                random
+              )
+            )
+          );
+
+      }
+    );
+
+    await updateStockBoard();
+
+  },
+
+  86400000
+);
+
+// ======================================================
 // READY
 // ======================================================
 
-client.once("ready", async () => {
+client.once(
+  "ready",
 
-  console.log(
-    `Bot online: ${client.user.tag}`
-  );
+  async () => {
 
-  await createDispatchTerminal();
+    console.log(
+      `Bot online: ${client.user.tag}`
+    );
 
-  await updateStockBoard();
+    await createDispatchTerminal();
 
-});
+    await updateStockBoard();
+
+    await updateLeaderboard();
+
+  }
+);
 
 // ======================================================
 // INTERACTIONS
 // ======================================================
 
 client.on(
+
   "interactionCreate",
+
   async interaction => {
 
     try {
@@ -630,17 +887,14 @@ ${interaction.values[0]}`
 
           }
 
-          const sorted =
-            [...stores].sort(
-              (a, b) =>
-                a.stock - b.stock
-            );
-
           const store =
-            sorted[0];
+            getSmartStore(
+              rdc
+            );
 
           const jobId =
             "J-" +
+
             Math.floor(
               Math.random() *
               100000
@@ -652,7 +906,8 @@ ${interaction.values[0]}`
 
           activeJobs.push({
 
-            id: jobId,
+            id:
+              jobId,
 
             user:
               interaction.user.id,
@@ -661,6 +916,16 @@ ${interaction.values[0]}`
               store.name
 
           });
+
+          saveData(
+            ACTIVE_DRIVERS_FILE,
+            activeDrivers
+          );
+
+          saveData(
+            ACTIVE_JOBS_FILE,
+            activeJobs
+          );
 
           const row =
             new ActionRowBuilder()
@@ -688,7 +953,7 @@ ${interaction.values[0]}`
               ACTIVE_JOBS_CHANNEL_ID
             );
 
-          const activeContent =
+          const content =
 `┌──────────────────────────────┐
       ACTIVE DISPATCH
 └──────────────────────────────┘
@@ -705,9 +970,6 @@ ${rdc}
 🏪 STORE:
 ${store.name}
 
-📊 PRIORITY:
-${getStatus(store.stock)}
-
 📦 STOCK:
 ${store.stock}%
 
@@ -715,14 +977,16 @@ ${store.stock}%
 IN TRANSIT
 `;
 
-          if (activeChannel) {
+          if (
+            activeChannel
+          ) {
 
             await activeChannel.send({
 
-              content:
-                activeContent,
+              content,
 
-              components: [row]
+              components:
+                [row]
 
             });
 
@@ -732,7 +996,7 @@ IN TRANSIT
 
             interaction,
 
-            "✅ Dispatch generated and sent to Active Jobs."
+            "✅ Dispatch generated."
 
           );
 
@@ -755,7 +1019,9 @@ IN TRANSIT
 
           const job =
             activeJobs.find(
-              j => j.id === jobId
+              j =>
+                j.id ===
+                jobId
             );
 
           if (!job) {
@@ -787,6 +1053,13 @@ IN TRANSIT
             job.user
           ];
 
+          activeJobs =
+            activeJobs.filter(
+              j =>
+                j.id !==
+                jobId
+            );
+
           if (
             !driverStats[
               job.user
@@ -803,7 +1076,24 @@ IN TRANSIT
             job.user
           ]++;
 
+          saveData(
+            DRIVER_STATS_FILE,
+            driverStats
+          );
+
+          saveData(
+            ACTIVE_DRIVERS_FILE,
+            activeDrivers
+          );
+
+          saveData(
+            ACTIVE_JOBS_FILE,
+            activeJobs
+          );
+
           await updateStockBoard();
+
+          await updateLeaderboard();
 
           const disabledRow =
             new ActionRowBuilder()
@@ -824,7 +1114,9 @@ IN TRANSIT
                     ButtonStyle.Secondary
                   )
 
-                  .setDisabled(true)
+                  .setDisabled(
+                    true
+                  )
 
               );
 
@@ -880,4 +1172,6 @@ ${driverStats[job.user]}
 // LOGIN
 // ======================================================
 
-client.login(process.env.TOKEN);
+client.login(
+  process.env.TOKEN
+);
