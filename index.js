@@ -6,32 +6,73 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  REST,
-  Routes,
-  SlashCommandBuilder
+  StringSelectMenuBuilder
 } = require("discord.js");
 
-// =========================
+// ======================================================
 // CLIENT
-// =========================
+// ======================================================
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
-// =========================
-// DATA
-// =========================
+// ======================================================
+// CONFIG
+// ======================================================
 
-let jobs = [];
-let drivers = {};
-let driverStats = {};
+const CLIENT_ID = "1497676061083697313";
 
-// =========================
+const JOB_CHANNEL_ID = "1497716778791342120";
+
+const STOCK_CHANNEL_ID = "1497749476234760342";
+
+const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
+
+// ======================================================
+// RDCS
+// ======================================================
+
+const rdcs = [
+
+  // DHL
+
+  "DHL - Ullapool",
+  "DHL - Oban",
+  "DHL - Aberdeen",
+  "DHL - Newport",
+  "DHL - Portsmouth",
+
+  // DSV
+
+  "DSV - Newry",
+  "DSV - Wexford",
+  "DSV - Waterford",
+  "DSV - Newport",
+
+  // XPO
+
+  "XPO Logistics - London",
+  "XPO Logistics - Dover",
+
+  // STOBART / CULINA
+
+  "Stobart/Culina - Sligo",
+  "Stobart/Culina - Ballymena",
+  "Stobart/Culina - Fort William",
+  "Stobart/Culina - Carlisle",
+  "Stobart/Culina - Ullapool",
+  "Stobart/Culina - Swansea",
+  "Stobart/Culina - Croydon",
+  "Stobart/Culina - Portsmouth"
+
+];
+
+// ======================================================
 // STORES
-// =========================
+// ======================================================
 
-let stores = [
+const stores = [
 
   // TESCO
 
@@ -98,104 +139,110 @@ let stores = [
 
 ];
 
-// =========================
-// STATUS FUNCTION
-// =========================
+// ======================================================
+// DATA
+// ======================================================
+
+let selectedRdc = {};
+let activeDrivers = {};
+let activeJobs = [];
+let driverStats = {};
+
+// ======================================================
+// STATUS
+// ======================================================
 
 function getStatus(stock) {
 
-  if (stock <= 30) return "🔴 LOW";
+  if (stock <= 30) return "🔴 CRITICAL";
 
-  if (stock <= 60) return "🟡 MEDIUM";
+  if (stock <= 60) return "🟡 LOW";
 
-  return "🟢 HIGH";
+  return "🟢 HEALTHY";
 
 }
 
-// =========================
+// ======================================================
 // DAILY STOCK DEPLETION
-// =========================
+// ======================================================
 
 setInterval(() => {
 
-  try {
+  stores.forEach(store => {
 
-    stores.forEach(store => {
-
-      store.stock = Math.max(
-        0,
-        Math.floor(store.stock * 0.9)
-      );
-
-    });
-
-    console.log(
-      "10% stock depletion completed."
+    store.stock = Math.max(
+      0,
+      Math.floor(store.stock * 0.86)
     );
 
-  } catch (error) {
+  });
 
-    console.error(
-      "Stock depletion error:",
-      error
-    );
+  updateStockBoard();
 
-  }
+  console.log(
+    "14% stock depletion complete."
+  );
 
 }, 86400000);
 
-// =========================
-// REGISTER COMMANDS
-// =========================
+// ======================================================
+// STOCK BOARD
+// ======================================================
 
-async function registerCommands() {
+async function updateStockBoard() {
 
   try {
 
-    const commands = [
+    const channel =
+      await client.channels.fetch(
+        STOCK_CHANNEL_ID
+      );
 
-      new SlashCommandBuilder()
+    if (!channel) return;
 
-        .setName("job")
+    const sorted =
+      [...stores].sort(
+        (a, b) => a.stock - b.stock
+      );
 
-        .setDescription(
-          "Generate a delivery job"
-        ),
+    let content =
+`📦 JC LOGISTICS STOCK BOARD
 
-      new SlashCommandBuilder()
+`;
 
-        .setName("deplete")
+    sorted.forEach(store => {
 
-        .setDescription(
-          "Manually deplete stock"
-        )
+      content +=
+`${getStatus(store.stock)} | ${store.name} | ${store.stock}%\n`;
 
-    ].map(command =>
-      command.toJSON()
-    );
+    });
 
-    const rest = new REST({
-      version: "10"
-    }).setToken(process.env.TOKEN);
+    const messages =
+      await channel.messages.fetch({
+        limit: 1
+      });
 
-    await rest.put(
+    const lastMessage =
+      messages.first();
 
-      Routes.applicationCommands(
-        process.env.CLIENT_ID
-      ),
+    if (
+      lastMessage &&
+      lastMessage.author.id ===
+      client.user.id
+    ) {
 
-      { body: commands }
+      await lastMessage.edit(content);
 
-    );
+    } else {
 
-    console.log(
-      "Slash commands registered."
-    );
+      await channel.send(content);
+
+    }
 
   } catch (error) {
 
     console.error(
-      "Command registration error:",
+      "Stock board error:",
       error
     );
 
@@ -203,9 +250,129 @@ async function registerCommands() {
 
 }
 
-// =========================
-// BOT READY
-// =========================
+// ======================================================
+// DISPATCH TERMINAL
+// ======================================================
+
+async function createDispatchTerminal() {
+
+  try {
+
+    const channel =
+      await client.channels.fetch(
+        JOB_CHANNEL_ID
+      );
+
+    if (!channel) return;
+
+    const menu =
+      new StringSelectMenuBuilder()
+
+        .setCustomId("rdc_select")
+
+        .setPlaceholder(
+          "Select RDC"
+        )
+
+        .addOptions(
+
+          rdcs.map(rdc => ({
+
+            label: rdc,
+
+            value: rdc
+
+          }))
+
+        );
+
+    const row1 =
+      new ActionRowBuilder()
+        .addComponents(menu);
+
+    const row2 =
+      new ActionRowBuilder()
+        .addComponents(
+
+          new ButtonBuilder()
+
+            .setCustomId(
+              "generate_job"
+            )
+
+            .setLabel(
+              "Generate Dispatch"
+            )
+
+            .setStyle(
+              ButtonStyle.Primary
+            )
+
+        );
+
+    const messages =
+      await channel.messages.fetch({
+        limit: 10
+      });
+
+    const existing =
+      messages.find(
+        m =>
+          m.author.id ===
+          client.user.id
+      );
+
+    const content =
+`┌──────────────────────────────┐
+     JC LOGISTICS TERMINAL
+└──────────────────────────────┘
+
+Select RDC below
+then generate dispatch.
+`;
+
+    if (existing) {
+
+      await existing.edit({
+
+        content,
+
+        components: [
+          row1,
+          row2
+        ]
+
+      });
+
+    } else {
+
+      await channel.send({
+
+        content,
+
+        components: [
+          row1,
+          row2
+        ]
+
+      });
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "Dispatch terminal error:",
+      error
+    );
+
+  }
+
+}
+
+// ======================================================
+// READY
+// ======================================================
 
 client.once("ready", async () => {
 
@@ -213,13 +380,15 @@ client.once("ready", async () => {
     `Bot online: ${client.user.tag}`
   );
 
-  await registerCommands();
+  await createDispatchTerminal();
+
+  await updateStockBoard();
 
 });
 
-// =========================
+// ======================================================
 // INTERACTIONS
-// =========================
+// ======================================================
 
 client.on(
   "interactionCreate",
@@ -227,27 +396,58 @@ client.on(
 
     try {
 
-      // =========================
-      // SLASH COMMANDS
-      // =========================
+      // ==================================================
+      // RDC SELECT
+      // ==================================================
 
       if (
-        interaction.isChatInputCommand()
+        interaction.isStringSelectMenu()
       ) {
 
-        // =========================
-        // /JOB
-        // =========================
-
         if (
-          interaction.commandName ===
-          "job"
+          interaction.customId ===
+          "rdc_select"
         ) {
 
-          // ACTIVE JOB CHECK
+          selectedRdc[
+            interaction.user.id
+          ] =
+            interaction.values[0];
+
+          return await interaction.reply({
+
+            content:
+`✅ RDC Selected
+
+${interaction.values[0]}`,
+
+            ephemeral: true
+
+          });
+
+        }
+
+      }
+
+      // ==================================================
+      // BUTTONS
+      // ==================================================
+
+      if (
+        interaction.isButton()
+      ) {
+
+        // ==============================================
+        // GENERATE JOB
+        // ==============================================
+
+        if (
+          interaction.customId ===
+          "generate_job"
+        ) {
 
           if (
-            drivers[
+            activeDrivers[
               interaction.user.id
             ]
           ) {
@@ -263,47 +463,57 @@ client.on(
 
           }
 
-          // SORT STORES
+          const rdc =
+            selectedRdc[
+              interaction.user.id
+            ];
 
-          let sortedStores =
+          if (!rdc) {
+
+            return await interaction.reply({
+
+              content:
+                "❌ Select an RDC first.",
+
+              ephemeral: true
+
+            });
+
+          }
+
+          // LOWEST STOCK STORE
+
+          const sorted =
             [...stores].sort(
               (a, b) =>
                 a.stock - b.stock
             );
 
-          let selectedStore =
-            sortedStores[0];
+          const store =
+            sorted[0];
 
-          // JOB ID
-
-          let jobId =
+          const jobId =
             "J-" +
             Math.floor(
               Math.random() *
               100000
             );
 
-          // SAVE JOB
-
-          jobs.push({
-
-            id: jobId,
-
-            userId:
-              interaction.user.id,
-
-            store:
-              selectedStore.name
-
-          });
-
-          // LOCK DRIVER
-
-          drivers[
+          activeDrivers[
             interaction.user.id
           ] = true;
 
-          // BUTTON
+          activeJobs.push({
+
+            id: jobId,
+
+            user:
+              interaction.user.id,
+
+            store:
+              store.name
+
+          });
 
           const row =
             new ActionRowBuilder()
@@ -317,7 +527,7 @@ client.on(
                   )
 
                   .setLabel(
-                    "Job Completed"
+                    "Complete Delivery"
                   )
 
                   .setStyle(
@@ -326,87 +536,67 @@ client.on(
 
               );
 
-          // SEND JOB
-
-          await interaction.reply({
-
-            content:
-
+          const content =
 `┌──────────────────────────────┐
-   JC LOGISTICS DISPATCH
+     JC LOGISTICS DISPATCH
 └──────────────────────────────┘
 
 🚚 JOB ID:
 ${jobId}
 
+🏭 RDC:
+${rdc}
+
 🏪 STORE:
-${selectedStore.name}
+${store.name}
 
-📊 STOCK:
-${getStatus(selectedStore.stock)}
-(${selectedStore.stock}%)
+📊 PRIORITY:
+${getStatus(store.stock)}
 
-📦 STATUS:
+📦 STOCK:
+${store.stock}%
+
+📋 STATUS:
 IN TRANSIT
-`,
+`;
+
+          await interaction.reply({
+
+            content,
 
             components: [row]
 
           });
 
-        }
+          // ACTIVE JOB CHANNEL
 
-        // =========================
-        // /DEPLETE
-        // =========================
-
-        if (
-          interaction.commandName ===
-          "deplete"
-        ) {
-
-          let randomStore =
-            stores[
-              Math.floor(
-                Math.random() *
-                stores.length
-              )
-            ];
-
-          randomStore.stock =
-            Math.max(
-              0,
-              randomStore.stock - 20
+          const activeChannel =
+            await client.channels.fetch(
+              ACTIVE_JOBS_CHANNEL_ID
             );
 
-          await interaction.reply({
+          if (activeChannel) {
 
-            content:
+            await activeChannel.send(
+`🚚 ACTIVE JOB
 
-`⚠️ MANUAL DEPLETION
+Driver:
+<@${interaction.user.id}>
 
-🏪 STORE:
-${randomStore.name}
+JOB ID:
+${jobId}
 
-📉 NEW STOCK:
-${randomStore.stock}%
-`,
+STORE:
+${store.name}`
+            );
 
-            ephemeral: true
-
-          });
+          }
 
         }
 
-      }
-
-      // =========================
-      // BUTTONS
-      // =========================
-
-      if (interaction.isButton()) {
-
-        // COMPLETE JOB
+        // ==============================================
+        // COMPLETE DELIVERY
+        // ==============================================
 
         if (
           interaction.customId.startsWith(
@@ -414,13 +604,13 @@ ${randomStore.stock}%
           )
         ) {
 
-          let jobId =
+          const jobId =
             interaction.customId.split(
               "_"
             )[1];
 
-          let job =
-            jobs.find(
+          const job =
+            activeJobs.find(
               j => j.id === jobId
             );
 
@@ -437,7 +627,7 @@ ${randomStore.stock}%
 
           }
 
-          let store =
+          const store =
             stores.find(
               s =>
                 s.name ===
@@ -452,9 +642,7 @@ ${randomStore.stock}%
               store.stock + 25
             );
 
-          // REMOVE ACTIVE JOB
-
-          delete drivers[
+          delete activeDrivers[
             interaction.user.id
           ];
 
@@ -476,12 +664,11 @@ ${randomStore.stock}%
             interaction.user.id
           ]++;
 
-          // UPDATE MESSAGE
+          await updateStockBoard();
 
           await interaction.update({
 
             content:
-
 `✅ DELIVERY COMPLETED
 
 🏪 STORE:
@@ -511,58 +698,13 @@ ${driverStats[
         error
       );
 
-      try {
-
-        if (!interaction.replied) {
-
-          await interaction.reply({
-
-            content:
-              "❌ System error occurred.",
-
-            ephemeral: true
-
-          });
-
-        }
-
-      } catch {}
-
     }
 
   }
 );
 
-// =========================
-// ERROR HANDLING
-// =========================
-
-process.on(
-  "unhandledRejection",
-  error => {
-
-    console.error(
-      "Unhandled rejection:",
-      error
-    );
-
-  }
-);
-
-process.on(
-  "uncaughtException",
-  error => {
-
-    console.error(
-      "Uncaught exception:",
-      error
-    );
-
-  }
-);
-
-// =========================
+// ======================================================
 // LOGIN
-// =========================
+// ======================================================
 
 client.login(process.env.TOKEN);
