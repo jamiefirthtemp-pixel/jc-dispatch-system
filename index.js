@@ -8,7 +8,9 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  StringSelectMenuBuilder
+  StringSelectMenuBuilder,
+  SlashCommandBuilder,
+  PermissionFlagsBits
 } = require("discord.js");
 
 // ======================================================
@@ -100,8 +102,110 @@ let driverStats =
     {}
   );
 
-let activeEmergency =
-  null;
+let activeEmergency = null;
+
+let lastCompanyDispatched = null;
+
+// ======================================================
+// TEMP REPLY
+// ======================================================
+
+async function tempReply(
+  interaction,
+  content,
+  time = 3000
+) {
+
+  await interaction.reply({
+
+    content,
+    ephemeral: true
+
+  });
+
+  setTimeout(async () => {
+
+    try {
+
+      await interaction.deleteReply();
+
+    } catch {}
+
+  }, time);
+
+}
+
+// ======================================================
+// ALERT SCENARIOS
+// ======================================================
+
+const alertScenarios = [
+
+  {
+    title: "Ferry Cancellation",
+    impact:
+      "Irish freight crossings suspended due to severe weather.",
+    action:
+      "Emergency rerouting required."
+  },
+
+  {
+    title: "Power Failure",
+    impact:
+      "Store refrigeration systems offline.",
+    action:
+      "Priority chilled goods delivery required."
+  },
+
+  {
+    title: "Warehouse Conveyor Failure",
+    impact:
+      "Distribution processing delays confirmed.",
+    action:
+      "Backup RDC dispatching recommended."
+  },
+
+  {
+    title: "Port Congestion",
+    impact:
+      "Inbound container shipments delayed.",
+    action:
+      "Critical stock protection procedures active."
+  },
+
+  {
+    title: "Motorway Closure",
+    impact:
+      "Primary freight routes blocked by collision incident.",
+    action:
+      "Regional dispatch rerouting required."
+  },
+
+  {
+    title: "Unexpected Demand Surge",
+    impact:
+      "Store experiencing rapid stock depletion.",
+    action:
+      "Immediate replenishment dispatch required."
+  },
+
+  {
+    title: "Cold Storage Failure",
+    impact:
+      "Temperature-sensitive goods at risk.",
+    action:
+      "Emergency refrigerated transport needed."
+  },
+
+  {
+    title: "Driver Shortage",
+    impact:
+      "Regional delivery capacity reduced.",
+    action:
+      "Priority dispatch allocation active."
+  }
+
+];
 
 // ======================================================
 // JOB TYPES
@@ -119,7 +223,6 @@ const jobTypes = [
 
     priority:
       "STANDARD"
-
   },
 
   {
@@ -132,7 +235,6 @@ const jobTypes = [
 
     priority:
       "CRITICAL"
-
   },
 
   {
@@ -145,7 +247,6 @@ const jobTypes = [
 
     priority:
       "HIGH"
-
   },
 
   {
@@ -158,7 +259,6 @@ const jobTypes = [
 
     priority:
       "SEVERE"
-
   }
 
 ];
@@ -361,7 +461,43 @@ function getSmartStore(rdc) {
       a.stock - b.stock
   );
 
-  return regionalStores[0];
+  let filtered = regionalStores;
+
+  if (lastCompanyDispatched) {
+
+    const withoutLastCompany =
+      regionalStores.filter(
+        store =>
+          store.company !==
+          lastCompanyDispatched
+      );
+
+    if (
+      withoutLastCompany.length > 0
+    ) {
+
+      filtered =
+        withoutLastCompany;
+
+    }
+
+  }
+
+  const topChoices =
+    filtered.slice(0, 5);
+
+  const chosen =
+    topChoices[
+      Math.floor(
+        Math.random() *
+        topChoices.length
+      )
+    ];
+
+  lastCompanyDispatched =
+    chosen.company;
+
+  return chosen;
 
 }
 
@@ -406,21 +542,11 @@ async function triggerEmergencyEvent() {
       )
     ];
 
-  const events = [
-
-    "Demand Surge",
-    "Port Delay",
-    "Supply Chain Failure",
-    "Weather Disruption",
-    "Panic Buying"
-
-  ];
-
-  const event =
-    events[
+  const scenario =
+    alertScenarios[
       Math.floor(
         Math.random() *
-        events.length
+        alertScenarios.length
       )
     ];
 
@@ -432,17 +558,18 @@ async function triggerEmergencyEvent() {
 
   activeEmergency = {
 
-    event,
+    event:
+      scenario.title,
+
     store
 
   };
 
   await sendAlert(
-
 `🚨 SUPPLY CHAIN ALERT
 
-⚠ EVENT:
-${event}
+⚠ INCIDENT:
+${scenario.title}
 
 🏪 STORE:
 ${store.name}
@@ -450,11 +577,14 @@ ${store.name}
 🌍 REGION:
 ${store.region}
 
-📦 STOCK:
-${store.stock}%
+📉 IMPACT:
+${scenario.impact}
 
-🚛 PRIORITY RESTOCK REQUIRED`
+🚛 RESPONSE:
+${scenario.action}
 
+📦 CURRENT STOCK:
+${store.stock}%`
   );
 
 }
@@ -482,16 +612,15 @@ async function updateStockBoard() {
       JC LOGISTICS
         STOCK BOARD
 ╚════════════════════════╝
-
 `;
 
     if (activeEmergency) {
 
       content +=
-`🚨 ACTIVE EMERGENCY
+`
+🚨 ACTIVE INCIDENT
 ${activeEmergency.store.name}
 ${activeEmergency.event}
-
 `;
 
     }
@@ -505,12 +634,10 @@ ${activeEmergency.event}
 `;
 
         grouped[company]
-
           .sort(
             (a, b) =>
               a.stock - b.stock
           )
-
           .forEach(store => {
 
             const short =
@@ -573,11 +700,10 @@ async function updateLeaderboard() {
 
     const sorted =
       Object.entries(driverStats)
-
-        .sort(
-          (a, b) =>
-            b[1] - a[1]
-        );
+      .sort(
+        (a, b) =>
+          b[1] - a[1]
+      );
 
     let content =
 `🏆 JC LOGISTICS LEADERBOARD
@@ -592,10 +718,7 @@ async function updateLeaderboard() {
     } else {
 
       sorted.forEach(
-        (
-          [userId, count],
-          index
-        ) => {
+        ([userId, count], index) => {
 
           let medal = "▫️";
 
@@ -662,22 +785,15 @@ async function createDispatchTerminal() {
 
   const menu =
     new StringSelectMenuBuilder()
-
       .setCustomId("rdc_select")
-
       .setPlaceholder(
         "Select RDC"
       )
-
       .addOptions(
-
         rdcs.map(rdc => ({
-
           label: rdc,
           value: rdc
-
         }))
-
       );
 
   const row1 =
@@ -686,23 +802,17 @@ async function createDispatchTerminal() {
 
   const row2 =
     new ActionRowBuilder()
-
       .addComponents(
-
         new ButtonBuilder()
-
           .setCustomId(
             "generate_job"
           )
-
           .setLabel(
             "Generate Dispatch"
           )
-
           .setStyle(
             ButtonStyle.Primary
           )
-
       );
 
   const content =
@@ -729,32 +839,55 @@ then generate dispatch.
   if (existing) {
 
     await existing.edit({
-
       content,
-
       components: [
         row1,
         row2
       ]
-
     });
 
   } else {
 
     await channel.send({
-
       content,
-
       components: [
         row1,
         row2
       ]
-
     });
 
   }
 
 }
+
+// ======================================================
+// READY
+// ======================================================
+
+client.once("ready", async () => {
+
+  console.log(
+    `Bot online: ${client.user.tag}`
+  );
+
+  await client.application.commands.create(
+    new SlashCommandBuilder()
+      .setName("alert")
+      .setDescription(
+        "Trigger a supply chain incident"
+      )
+      .setDefaultMemberPermissions(
+        PermissionFlagsBits.Administrator)
+      .toJSON()
+  );
+
+  await createDispatchTerminal();
+
+  await updateStockBoard();
+
+  await updateLeaderboard();
+
+});
 
 // ======================================================
 // STOCK DRAIN
@@ -798,33 +931,42 @@ setInterval(async () => {
 }, 86400000);
 
 // ======================================================
-// READY
-// ======================================================
-
-client.once("ready", async () => {
-
-  console.log(
-    `Bot online: ${client.user.tag}`
-  );
-
-  await createDispatchTerminal();
-
-  await updateStockBoard();
-
-  await updateLeaderboard();
-
-});
-
-// ======================================================
 // INTERACTIONS
 // ======================================================
 
 client.on(
   "interactionCreate",
-
   async interaction => {
 
     try {
+
+      // ================================================
+      // ALERT COMMAND
+      // ================================================
+
+      if (
+        interaction.isChatInputCommand()
+      ) {
+
+        if (
+          interaction.commandName ===
+          "alert"
+        ) {
+
+          await triggerEmergencyEvent();
+
+          return await tempReply(
+            interaction,
+            "🚨 Alert triggered."
+          );
+
+        }
+
+      }
+
+      // ================================================
+      // SELECT MENU
+      // ================================================
 
       if (
         interaction.isStringSelectMenu()
@@ -840,28 +982,28 @@ client.on(
           ] =
             interaction.values[0];
 
-          return await interaction.reply({
-
-            content:
+          return await tempReply(
+            interaction,
 `✅ RDC Selected
 
-${interaction.values[0]}`,
-
-            ephemeral: true
-
-          });
+${interaction.values[0]}`
+          );
 
         }
 
       }
 
+      // ================================================
+      // BUTTONS
+      // ================================================
+
       if (
         interaction.isButton()
       ) {
 
-        // ==================================================
+        // ============================================
         // GENERATE JOB
-        // ==================================================
+        // ============================================
 
         if (
           interaction.customId ===
@@ -874,14 +1016,10 @@ ${interaction.values[0]}`,
             ]
           ) {
 
-            return await interaction.reply({
-
-              content:
-                "❌ You already have an active job.",
-
-              ephemeral: true
-
-            });
+            return await tempReply(
+              interaction,
+              "❌ You already have an active job."
+            );
 
           }
 
@@ -892,14 +1030,10 @@ ${interaction.values[0]}`,
 
           if (!rdc) {
 
-            return await interaction.reply({
-
-              content:
-                "❌ Select an RDC first.",
-
-              ephemeral: true
-
-            });
+            return await tempReply(
+              interaction,
+              "❌ Select an RDC first."
+            );
 
           }
 
@@ -918,7 +1052,6 @@ ${interaction.values[0]}`,
 
           const jobId =
             "J-" +
-
             Math.floor(
               Math.random() *
               100000
@@ -958,23 +1091,17 @@ ${interaction.values[0]}`,
 
           const row =
             new ActionRowBuilder()
-
               .addComponents(
-
                 new ButtonBuilder()
-
                   .setCustomId(
                     `complete_${jobId}`
                   )
-
                   .setLabel(
                     "Complete Delivery"
                   )
-
                   .setStyle(
                     ButtonStyle.Success
                   )
-
               );
 
           const activeChannel =
@@ -1019,27 +1146,20 @@ IN TRANSIT
 `;
 
           await activeChannel.send({
-
             content,
-
             components: [row]
-
           });
 
-          await interaction.reply({
-
-            content:
-              "✅ Dispatch generated.",
-
-            ephemeral: true
-
-          });
+          await tempReply(
+            interaction,
+            "✅ Dispatch generated."
+          );
 
         }
 
-        // ==================================================
+        // ============================================
         // COMPLETE DELIVERY
-        // ==================================================
+        // ============================================
 
         if (
           interaction.customId.startsWith(
@@ -1060,14 +1180,10 @@ IN TRANSIT
 
           if (!job) {
 
-            return await interaction.reply({
-
-              content:
-                "❌ Job not found.",
-
-              ephemeral: true
-
-            });
+            return await tempReply(
+              interaction,
+              "❌ Job not found."
+            );
 
           }
 
@@ -1134,8 +1250,7 @@ IN TRANSIT
           ) {
 
             await sendAlert(
-
-`✅ EMERGENCY RESOLVED
+`✅ INCIDENT RESOLVED
 
 🏪 STORE:
 ${store.name}
@@ -1143,8 +1258,7 @@ ${store.name}
 📦 STOCK:
 ${store.stock}%
 
-Priority restock completed.`
-
+Priority delivery completed.`
             );
 
             activeEmergency =
@@ -1158,25 +1272,18 @@ Priority restock completed.`
 
           const disabledRow =
             new ActionRowBuilder()
-
               .addComponents(
-
                 new ButtonBuilder()
-
                   .setCustomId(
                     `complete_${jobId}`
                   )
-
                   .setLabel(
                     "Delivery Complete"
                   )
-
                   .setStyle(
                     ButtonStyle.Secondary
                   )
-
                   .setDisabled(true)
-
               );
 
           await interaction.update({
@@ -1194,8 +1301,7 @@ ${store.name}
 ${store.stock}%
 
 🏆 DRIVER POINTS:
-${driverStats[job.user]}
-`,
+${driverStats[job.user]}`,
 
             components: [
               disabledRow
@@ -1218,6 +1324,10 @@ ${driverStats[job.user]}
 
   }
 );
+
+// ======================================================
+// LOGIN
+// ======================================================
 
 client.login(
   process.env.TOKEN
