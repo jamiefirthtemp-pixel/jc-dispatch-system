@@ -128,34 +128,34 @@ const jobTypes = [
 ];
 
 // ======================================================
-// INCIDENT SCENARIOS
+// URGENT CONTRACT SCENARIOS
 // ======================================================
 
 const incidentScenarios = [
   {
-    title: "Ferry Cancellation",
-    description: "Irish freight crossing suspended due to severe weather.",
+    title: "Missed Delivery",
+    description: "Culina Sub Contract",
     severity: "MAJOR",
     points: 5,
     stockLoss: 25
   },
   {
-    title: "Power Outage",
-    description: "Store refrigeration systems offline.",
+    title: "Missed Delivery",
+    description: "McCloud Logistics Sub Contract",
     severity: "CRITICAL",
     points: 8,
     stockLoss: 40
   },
   {
-    title: "Motorway Closure",
-    description: "Primary freight route blocked by incident.",
+    title: "Missed Delivery",
+    description: "Dez Hartley Sub Contract",
     severity: "MINOR",
     points: 3,
     stockLoss: 15
   },
   {
-    title: "Port Congestion",
-    description: "Inbound containers delayed at port.",
+    title: "Missed Delivery",
+    description: "SNT Transport Sub Contract",
     severity: "MAJOR",
     points: 5,
     stockLoss: 30
@@ -237,25 +237,44 @@ async function updateStockBoard() {
     grouped[store.company].push(store);
   }
 
+  const criticalCount = state.stores.filter(s => s.stock <= 30).length;
+  const lowCount = state.stores.filter(s => s.stock > 30 && s.stock <= 60).length;
+  const healthyCount = state.stores.filter(s => s.stock > 60).length;
+
   let content = `╔════════════════════════════╗
       JC LOGISTICS
        LIVE STOCK BOARD
 ╚════════════════════════════╝
+
+🔴 Critical Amount: ${criticalCount}
+🟡 Low Amount: ${lowCount}
+🟢 Healthy Amount: ${healthyCount}
 `;
 
   const activeIncidents = state.incidents.filter(i => i.status === "OPEN");
 
   if (activeIncidents.length) {
-    content += `\n🚨 ACTIVE INCIDENTS: ${activeIncidents.length}\n`;
+    content += `
+🚨 ACTIVE INCIDENTS: ${activeIncidents.length}
+`;
   }
 
-  for (const company of Object.keys(grouped)) {
-    content += `\n📦 ${company}\n━━━━━━━━━━━━━━━━\n`;
+  for (const company of Object.keys(grouped).sort()) {
+    content += `
+📦 ${company}
+━━━━━━━━━━━━━━━━
+`;
 
     grouped[company]
       .sort((a, b) => a.stock - b.stock)
       .forEach(store => {
-        content += `${getStatus(store.stock)} ${store.name.split(" - ")[1]} — ${store.stock}%\n`;
+        const location = store.name.split(" - ")[1];
+
+        content += `${getStatus(store.stock)} ${location}
+`;
+        content += `Stock: ${store.stock}%
+
+`;
       });
   }
 
@@ -448,7 +467,7 @@ async function completeDispatch(dispatchId, interaction) {
 
           await alertMessage.edit({
             content:
-`╔════════ INCIDENT RESOLVED ════════╗
+`╔════════ CONTRACT COMPLETE ════════╗
 
 ✅ ${incident.title}
 🏪 ${store.name}
@@ -462,7 +481,7 @@ ${store.stock}%
 🏆 Reward Delivered:
 ${incident.points} Points
 
-📌 STATUS: RESOLVED
+📌 STATUS: COMPLETED
 🆔 ${incident.id}
 
 ╚══════════════════════════════════╝`,
@@ -545,13 +564,13 @@ async function createIncident(manual = false) {
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`respond_${incident.id}`)
-      .setLabel("Respond To Incident")
+      .setLabel("Accept Urgent Contract")
       .setStyle(ButtonStyle.Danger)
   );
 
   const sentMessage = await channel.send({
     content:
-`╔════════ INCIDENT ALERT ════════╗
+`╔════════ URGENT CONTRACT ════════╗
 
 🚨 ${scenario.title}
 🏪 ${store.name}
@@ -562,7 +581,7 @@ async function createIncident(manual = false) {
 
 🏆 Response Reward: ${scenario.points} Points
 
-📌 STATUS: OPEN
+📌 STATUS: AVAILABLE
 🆔 ${incident.id}
 
 ╚══════════════════════════════╝`,
@@ -679,7 +698,7 @@ client.on("interactionCreate", async interaction => {
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "alert") {
         await createIncident(true);
-        return tempReply(interaction, "🚨 Incident triggered.");
+        return tempReply(interaction, "🚨 Urgent contract triggered.");
       }
     }
 
@@ -746,7 +765,7 @@ client.on("interactionCreate", async interaction => {
         const incident = state.incidents.find(i => i.id === incidentId);
 
         if (!incident || incident.status !== "OPEN") {
-          return tempReply(interaction, "❌ Incident unavailable.");
+          return tempReply(interaction, "❌ Urgent contract unavailable.");
         }
 
         if (state.activeDrivers[interaction.user.id]) {
@@ -755,7 +774,7 @@ client.on("interactionCreate", async interaction => {
 
         // atomic claim lock
         if (incident.assignedTo) {
-          return tempReply(interaction, "❌ Incident already assigned.");
+          return tempReply(interaction, "❌ Urgent contract already assigned.");
         }
 
         incident.assignedTo = interaction.user.id;
@@ -770,7 +789,7 @@ client.on("interactionCreate", async interaction => {
 
             await alertMessage.edit({
               content:
-`╔════════ INCIDENT ALERT ════════╗
+`╔════════ URGENT CONTRACT ════════╗
 
 🚨 ${incident.title}
 🏪 ${storeData.name}
@@ -781,7 +800,7 @@ client.on("interactionCreate", async interaction => {
 
 🏆 Reward: ${incident.points} Points
 
-📌 STATUS: ASSIGNED
+📌 STATUS: ASSIGNED DRIVER
 🆔 ${incident.id}
 
 ╚══════════════════════════════╝`
@@ -805,7 +824,7 @@ client.on("interactionCreate", async interaction => {
 
         saveState();
 
-        return tempReply(interaction, "🚨 Incident response assigned.");
+        return tempReply(interaction, "🚨 Urgent contract assigned.");
       }
 
       // ============================================
