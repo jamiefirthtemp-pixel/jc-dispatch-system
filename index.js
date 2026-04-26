@@ -20,7 +20,7 @@ intents: [GatewayIntentBits.Guilds]
 const DISPATCH_CHANNEL_ID = '1497756268847304734';
 const STOCK_CHANNEL_ID = '1497749476234760342';
 
-/* PUT YOUR DRIVER STATS CHANNEL ID HERE */
+/* PUT DRIVER STATS CHANNEL ID HERE */
 
 const DRIVER_STATS_CHANNEL_ID = 'PUT_DRIVER_STATS_CHANNEL_ID_HERE';
 
@@ -37,7 +37,6 @@ const rdcs = [
 { id: 'dsv_newry', name: 'DSV', location: 'NEWRY' },
 { id: 'dsv_wexford', name: 'DSV', location: 'WEXFORD' },
 { id: 'dsv_waterford', name: 'DSV', location: 'WATERFORD' },
-{ id: 'dsv_newport', name: 'DSV', location: 'NEWPORT' },
 
 { id: 'xpo_london', name: 'XPO LOGISTICS', location: 'LONDON' },
 { id: 'xpo_dover', name: 'XPO LOGISTICS', location: 'DOVER' },
@@ -45,11 +44,12 @@ const rdcs = [
 { id: 'culina_sligo', name: 'STOBART/CULINA', location: 'SLIGO' },
 { id: 'culina_ballymena', name: 'STOBART/CULINA', location: 'BALLYMENA' },
 { id: 'culina_ftwilliam', name: 'STOBART/CULINA', location: 'FT WILLIAM' },
-{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' }
+{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' },
+{ id: 'culina_swansea', name: 'STOBART/CULINA', location: 'SWANSEA' }
 
 ];
 
-/* STORES */
+/* FULL STORE NETWORK */
 
 const stores = [
 
@@ -173,14 +173,18 @@ if (!channel) return;
 const embed = new EmbedBuilder()
 
 .setTitle(
-  '📦 JC LOGISTICS STOCK BOARD'
+  '📦 JC LOGISTICS LIVE STOCK BOARD'
 )
 
 .setColor(0x0099ff)
 
+.setDescription(
+  'Live network inventory status'
+)
+
 .setTimestamp();
 
-stores.forEach(store => {
+for (const store of stores) {
 
 embed.addFields({
 
@@ -199,7 +203,7 @@ embed.addFields({
 
 });
 
-});
+}
 
 const messages =
 await channel.messages.fetch({
@@ -228,7 +232,7 @@ await channel.send({
 
 }
 
-/* DRIVER STATS BOARD */
+/* DRIVER BOARD */
 
 async function updateDriverBoard() {
 
@@ -255,7 +259,7 @@ Object.entries(driverStats);
 if (entries.length === 0) {
 
 embed.setDescription(
-  'No completed jobs yet.'
+  'No completed deliveries yet.'
 );
 
 } else {
@@ -306,7 +310,7 @@ await channel.send({
 
 }
 
-/* AUTO STOCK UPDATE */
+/* AUTO STOCK DEPLETION */
 
 setInterval(() => {
 
@@ -331,7 +335,7 @@ const commands = [
 
   {
     name: 'job',
-    description: 'Generate job'
+    description: 'Generate delivery job'
   }
 
 ];
@@ -473,10 +477,7 @@ try {
           store.name,
 
         storeLocation:
-          store.location,
-
-        rdc:
-          rdc.location
+          store.location
 
       };
 
@@ -517,7 +518,10 @@ try {
               value:
                 getTraffic(
                   store.stock
-                )
+                ) +
+                ' | ' +
+                store.stock +
+                '%'
             }
 
           )
@@ -552,6 +556,69 @@ try {
         components: [row]
 
       });
+
+      /* SEND TO DISPATCH CHANNEL */
+
+      const dispatchChannel =
+        await client.channels.fetch(
+          DISPATCH_CHANNEL_ID
+        );
+
+      if (dispatchChannel) {
+
+        const dispatchEmbed =
+          new EmbedBuilder()
+
+            .setTitle(
+              '🚚 ACTIVE DELIVERY'
+            )
+
+            .setColor(0xff9900)
+
+            .addFields(
+
+              {
+                name: '👤 DRIVER',
+                value:
+                  interaction.user.username
+              },
+
+              {
+                name: '📦 JOB ID',
+                value: jobId
+              },
+
+              {
+                name: '🏭 RDC',
+                value:
+                  rdc.name +
+                  ' - ' +
+                  rdc.location
+              },
+
+              {
+                name: '🏪 STORE',
+                value:
+                  store.name +
+                  ' - ' +
+                  store.location
+              },
+
+              {
+                name: '📊 STATUS',
+                value:
+                  'IN TRANSIT'
+              }
+
+            )
+
+            .setTimestamp();
+
+        await dispatchChannel.send({
+          embeds: [dispatchEmbed]
+        });
+
+      }
 
     }
 
