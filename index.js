@@ -565,7 +565,7 @@ async function createIncident(manual = false) {
 📌 STATUS: OPEN
 🆔 ${incident.id}
 
-╚══════════════════════════════╝`,\n\n🆔 ${incident.id}\n\n⚠ INCIDENT:\n${scenario.title}\n\n🏪 STORE:\n${store.name}\n\n📉 IMPACT:\n${scenario.description}\n\n🔥 SEVERITY:\n${scenario.severity}\n\n📦 STOCK NOW:\n${store.stock}%\n\n🏆 REWARD:\n${scenario.points} points`,
+╚══════════════════════════════╝`,
     components: [row]
   });
 
@@ -799,9 +799,3 @@ client.on("interactionCreate", async interaction => {
     console.error(error);
   }
 });
-
-// ======================================================
-// LOGIN
-// ======================================================
-
-client.login(process.env.TOKEN);
