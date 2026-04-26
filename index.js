@@ -14,6 +14,11 @@ const client = new Client({
 intents: [GatewayIntentBits.Guilds]
 });
 
+/* CHANNEL IDS */
+
+const DISPATCH_CHANNEL_ID = '1497756268847304734';
+const STOCK_CHANNEL_ID = '1497749476234760342';
+
 /* RDCS */
 
 const rdcs = [
@@ -191,6 +196,78 @@ store.stock = 100;
 
 }
 
+async function updateStockBoard() {
+
+const channel =
+await client.channels.fetch(
+STOCK_CHANNEL_ID
+);
+
+if (!channel) return;
+
+const embed =
+new EmbedBuilder()
+
+  .setTitle(
+    '📦 LIVE STOCK CONTROL BOARD'
+  )
+
+  .setColor(0x0099ff)
+
+  .setTimestamp();
+
+stores.forEach(store => {
+
+embed.addFields({
+
+  name:
+    store.name +
+    ' - ' +
+    store.location,
+
+  value:
+    getTrafficLight(
+      store.stock
+    ) +
+
+    ' (' +
+    store.stock +
+    '%)',
+
+  inline: false
+
+});
+
+});
+
+const messages =
+await channel.messages.fetch({
+limit: 10
+});
+
+const existing =
+messages.find(
+m =>
+m.author.id ===
+client.user.id
+);
+
+if (existing) {
+
+await existing.edit({
+  embeds: [embed]
+});
+
+} else {
+
+await channel.send({
+  embeds: [embed]
+});
+
+}
+
+}
+
 client.once(
 Events.ClientReady,
 async (readyClient) => {
@@ -241,6 +318,8 @@ await rest.put(
 console.log(
   'Commands registered'
 );
+
+updateStockBoard();
 
 }
 
@@ -396,18 +475,6 @@ try {
 
               inline: true
 
-            },
-
-            {
-
-              name:
-                '📡 DISPATCH STATUS',
-
-              value:
-                'ACTIVE DELIVERY',
-
-              inline: false
-
             }
 
           )
@@ -450,6 +517,33 @@ try {
 
       });
 
+      const dispatchChannel =
+        await client.channels.fetch(
+          DISPATCH_CHANNEL_ID
+        );
+
+      if (dispatchChannel) {
+
+        await dispatchChannel.send({
+
+          content:
+
+            '🚛 ACTIVE DELIVERY\n\n' +
+
+            interaction.user.username +
+
+            ' assigned to ' +
+
+            store.name +
+
+            ' - ' +
+
+            store.location
+
+        });
+
+      }
+
       return;
 
     }
@@ -461,46 +555,12 @@ try {
       'stock'
     ) {
 
-      const embed =
-        new EmbedBuilder()
-
-          .setTitle(
-            '📦 LIVE STOCK CONTROL'
-          )
-
-          .setColor(
-            0x0099ff
-          );
-
-      stores.forEach(store => {
-
-        embed.addFields({
-
-          name:
-
-            store.name +
-            ' - ' +
-            store.location,
-
-          value:
-
-            getTrafficLight(
-              store.stock
-            ) +
-
-            ' (' +
-            store.stock +
-            '%)',
-
-          inline: false
-
-        });
-
-      });
+      await updateStockBoard();
 
       await interaction.reply({
 
-        embeds: [embed],
+        content:
+          '📦 Stock board updated.',
 
         ephemeral: true
 
@@ -620,6 +680,8 @@ try {
         job.storeLocation
 
       );
+
+      updateStockBoard();
 
       if (
         !driverStats[
