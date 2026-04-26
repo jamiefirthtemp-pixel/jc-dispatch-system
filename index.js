@@ -19,10 +19,7 @@ intents: [GatewayIntentBits.Guilds]
 
 const DISPATCH_CHANNEL_ID = '1497756268847304734';
 const STOCK_CHANNEL_ID = '1497749476234760342';
-
-/* PUT DRIVER STATS CHANNEL ID HERE */
-
-const DRIVER_STATS_CHANNEL_ID = 'PUT_DRIVER_STATS_CHANNEL_ID_HERE';
+const DRIVER_STATS_CHANNEL_ID = '1497749336321429534';
 
 /* RDCS */
 
@@ -168,10 +165,7 @@ await client.channels.fetch(
 STOCK_CHANNEL_ID
 );
 
-if (!channel) {
-console.log('Stock channel not found');
-return;
-}
+if (!channel) return;
 
 let stockText = '';
 
@@ -353,7 +347,6 @@ await rest.put(
 );
 
 await updateStockBoard();
-
 await updateDriverBoard();
 
 }
@@ -646,11 +639,8 @@ try {
       }
 
       increaseStock(
-
         job.storeName,
-
         job.storeLocation
-
       );
 
       if (
@@ -681,7 +671,6 @@ try {
       ];
 
       await updateStockBoard();
-
       await updateDriverBoard();
 
       await interaction.reply({
