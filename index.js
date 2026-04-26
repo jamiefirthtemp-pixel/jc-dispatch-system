@@ -20,75 +20,32 @@ const client = new Client({
 });
 
 // ======================================================
-// CHANNEL CONFIG
+// CHANNELS
 // ======================================================
 
 const JOB_CHANNEL_ID = "1497716778791342120";
-
 const STOCK_CHANNEL_ID = "1497749476234760342";
-
 const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
-
 const LEADERBOARD_CHANNEL_ID = "1497941626260295803";
-
 const ALERTS_CHANNEL_ID = "1497948012603904000";
 
 // ======================================================
 // SAVE FILES
 // ======================================================
 
-const DRIVER_STATS_FILE =
-  "./driverStats.json";
-
-const ACTIVE_DRIVERS_FILE =
-  "./activeDrivers.json";
-
-const ACTIVE_JOBS_FILE =
-  "./activeJobs.json";
-
-// ======================================================
-// TEMP REPLY
-// ======================================================
-
-async function tempReply(
-  interaction,
-  content,
-  time = 3000
-) {
-
-  await interaction.reply({
-
-    content,
-    ephemeral: true
-
-  });
-
-  setTimeout(async () => {
-
-    try {
-
-      await interaction.deleteReply();
-
-    } catch {}
-
-  }, time);
-
-}
+const DRIVER_STATS_FILE = "./driverStats.json";
+const ACTIVE_DRIVERS_FILE = "./activeDrivers.json";
+const ACTIVE_JOBS_FILE = "./activeJobs.json";
 
 // ======================================================
 // SAVE / LOAD
 // ======================================================
 
-function loadData(
-  file,
-  fallback
-) {
+function loadData(file, fallback) {
 
   try {
 
-    if (
-      fs.existsSync(file)
-    ) {
+    if (fs.existsSync(file)) {
 
       return JSON.parse(
         fs.readFileSync(file)
@@ -106,27 +63,21 @@ function loadData(
 
 }
 
-function saveData(
-  file,
-  data
-) {
+function saveData(file, data) {
 
   fs.writeFileSync(
-
     file,
-
     JSON.stringify(
       data,
       null,
       2
     )
-
   );
 
 }
 
 // ======================================================
-// LOAD DATA
+// DATA
 // ======================================================
 
 let selectedRdc = {};
@@ -148,10 +99,6 @@ let driverStats =
     DRIVER_STATS_FILE,
     {}
   );
-
-// ======================================================
-// EMERGENCY
-// ======================================================
 
 let activeEmergency =
   null;
@@ -193,447 +140,130 @@ const rdcs = [
 
 const stores = [
 
-  // ======================================================
-  // TESCO
-  // ======================================================
+  { name: "Tesco - Dublin", stock: 70, region: "Ireland", company: "Tesco" },
+  { name: "Tesco - Belfast", stock: 70, region: "Northern Ireland", company: "Tesco" },
+  { name: "Tesco - Antrim", stock: 70, region: "Northern Ireland", company: "Tesco" },
+  { name: "Tesco - Dumfries", stock: 70, region: "Scotland", company: "Tesco" },
+  { name: "Tesco - Holyhead", stock: 70, region: "Wales", company: "Tesco" },
+  { name: "Tesco - Porthmadog", stock: 70, region: "Wales", company: "Tesco" },
+  { name: "Tesco - Aberystwyth", stock: 70, region: "Wales", company: "Tesco" },
+  { name: "Tesco - Folkestone", stock: 70, region: "South England", company: "Tesco" },
+  { name: "Tesco - London", stock: 70, region: "South England", company: "Tesco" },
+  { name: "Tesco - Chelmsford", stock: 70, region: "South England", company: "Tesco" },
+  { name: "Tesco - Norwich", stock: 70, region: "South England", company: "Tesco" },
+  { name: "Tesco - Ullapool", stock: 70, region: "Scotland", company: "Tesco" },
+  { name: "Tesco - Stornoway", stock: 70, region: "Scotland", company: "Tesco" },
 
-  {
-    name: "Tesco - Dublin",
-    stock: 70,
-    region: "Ireland",
-    company: "Tesco"
-  },
+  { name: "Aldi - Porthmadog", stock: 70, region: "Wales", company: "Aldi" },
+  { name: "Aldi - Waterford", stock: 70, region: "Ireland", company: "Aldi" },
+  { name: "Aldi - Sheffield", stock: 70, region: "North England", company: "Aldi" },
+  { name: "Aldi - Newcastle", stock: 70, region: "North England", company: "Aldi" },
+  { name: "Aldi - London", stock: 70, region: "South England", company: "Aldi" },
 
-  {
-    name: "Tesco - Belfast",
-    stock: 70,
-    region: "Northern Ireland",
-    company: "Tesco"
-  },
+  { name: "Lidl - Perth", stock: 70, region: "Scotland", company: "Lidl" },
+  { name: "Lidl - Edinburgh", stock: 70, region: "Scotland", company: "Lidl" },
+  { name: "Lidl - Waterford", stock: 70, region: "Ireland", company: "Lidl" },
+  { name: "Lidl - Swansea", stock: 70, region: "Wales", company: "Lidl" },
+  { name: "Lidl - Southampton", stock: 70, region: "South England", company: "Lidl" },
+  { name: "Lidl - Canterbury", stock: 70, region: "South England", company: "Lidl" },
+  { name: "Lidl - Antrim", stock: 70, region: "Northern Ireland", company: "Lidl" },
 
-  {
-    name: "Tesco - Antrim",
-    stock: 70,
-    region: "Northern Ireland",
-    company: "Tesco"
-  },
+  { name: "Sainsbury's - Exeter", stock: 70, region: "South England", company: "Sainsbury's" },
+  { name: "Sainsbury's - Newport", stock: 70, region: "Wales", company: "Sainsbury's" },
+  { name: "Sainsbury's - Lisburn", stock: 70, region: "Northern Ireland", company: "Sainsbury's" },
 
-  {
-    name: "Tesco - Dumfries",
-    stock: 70,
-    region: "Scotland",
-    company: "Tesco"
-  },
+  { name: "IKEA - Croydon", stock: 70, region: "South England", company: "IKEA" },
+  { name: "IKEA - Douglas", stock: 70, region: "Isle of Man", company: "IKEA" },
+  { name: "IKEA - Dublin", stock: 70, region: "Ireland", company: "IKEA" },
 
-  {
-    name: "Tesco - Holyhead",
-    stock: 70,
-    region: "Wales",
-    company: "Tesco"
-  },
+  { name: "Dreams - Exeter", stock: 70, region: "South England", company: "Dreams" },
 
-  {
-    name: "Tesco - Porthmadog",
-    stock: 70,
-    region: "Wales",
-    company: "Tesco"
-  },
+  { name: "Homebase - Exeter", stock: 70, region: "South England", company: "Homebase" },
+  { name: "Homebase - Plymouth", stock: 70, region: "South England", company: "Homebase" },
 
-  {
-    name: "Tesco - Aberystwyth",
-    stock: 70,
-    region: "Wales",
-    company: "Tesco"
-  },
+  { name: "McDonald's - London", stock: 70, region: "South England", company: "McDonald's" },
 
-  {
-    name: "Tesco - Folkestone",
-    stock: 70,
-    region: "South England",
-    company: "Tesco"
-  },
-
-  {
-    name: "Tesco - London",
-    stock: 70,
-    region: "South England",
-    company: "Tesco"
-  },
-
-  {
-    name: "Tesco - Chelmsford",
-    stock: 70,
-    region: "South England",
-    company: "Tesco"
-  },
-
-  {
-    name: "Tesco - Norwich",
-    stock: 70,
-    region: "South England",
-    company: "Tesco"
-  },
-
-  {
-    name: "Tesco - Ullapool",
-    stock: 70,
-    region: "Scotland",
-    company: "Tesco"
-  },
-
-  {
-    name: "Tesco - Stornoway",
-    stock: 70,
-    region: "Scotland",
-    company: "Tesco"
-  },
-
-  // ======================================================
-  // ALDI
-  // ======================================================
-
-  {
-    name: "Aldi - Porthmadog",
-    stock: 70,
-    region: "Wales",
-    company: "Aldi"
-  },
-
-  {
-    name: "Aldi - Waterford",
-    stock: 70,
-    region: "Ireland",
-    company: "Aldi"
-  },
-
-  {
-    name: "Aldi - Sheffield",
-    stock: 70,
-    region: "North England",
-    company: "Aldi"
-  },
-
-  {
-    name: "Aldi - Newcastle",
-    stock: 70,
-    region: "North England",
-    company: "Aldi"
-  },
-
-  {
-    name: "Aldi - London",
-    stock: 70,
-    region: "South England",
-    company: "Aldi"
-  },
-
-  // ======================================================
-  // LIDL
-  // ======================================================
-
-  {
-    name: "Lidl - Perth",
-    stock: 70,
-    region: "Scotland",
-    company: "Lidl"
-  },
-
-  {
-    name: "Lidl - Edinburgh",
-    stock: 70,
-    region: "Scotland",
-    company: "Lidl"
-  },
-
-  {
-    name: "Lidl - Waterford",
-    stock: 70,
-    region: "Ireland",
-    company: "Lidl"
-  },
-
-  {
-    name: "Lidl - Swansea",
-    stock: 70,
-    region: "Wales",
-    company: "Lidl"
-  },
-
-  {
-    name: "Lidl - Southampton",
-    stock: 70,
-    region: "South England",
-    company: "Lidl"
-  },
-
-  {
-    name: "Lidl - Canterbury",
-    stock: 70,
-    region: "South England",
-    company: "Lidl"
-  },
-
-  {
-    name: "Lidl - Antrim",
-    stock: 70,
-    region: "Northern Ireland",
-    company: "Lidl"
-  },
-
-  // ======================================================
-  // SAINSBURY'S
-  // ======================================================
-
-  {
-    name: "Sainsbury's - Exeter",
-    stock: 70,
-    region: "South England",
-    company: "Sainsbury's"
-  },
-
-  {
-    name: "Sainsbury's - Newport",
-    stock: 70,
-    region: "Wales",
-    company: "Sainsbury's"
-  },
-
-  {
-    name: "Sainsbury's - Lisburn",
-    stock: 70,
-    region: "Northern Ireland",
-    company: "Sainsbury's"
-  },
-
-  // ======================================================
-  // IKEA
-  // ======================================================
-
-  {
-    name: "IKEA - Croydon",
-    stock: 70,
-    region: "South England",
-    company: "IKEA"
-  },
-
-  {
-    name: "IKEA - Douglas",
-    stock: 70,
-    region: "Isle of Man",
-    company: "IKEA"
-  },
-
-  {
-    name: "IKEA - Dublin",
-    stock: 70,
-    region: "Ireland",
-    company: "IKEA"
-  },
-
-  // ======================================================
-  // DREAMS
-  // ======================================================
-
-  {
-    name: "Dreams - Exeter",
-    stock: 70,
-    region: "South England",
-    company: "Dreams"
-  },
-
-  // ======================================================
-  // HOMEBASE
-  // ======================================================
-
-  {
-    name: "Homebase - Exeter",
-    stock: 70,
-    region: "South England",
-    company: "Homebase"
-  },
-
-  {
-    name: "Homebase - Plymouth",
-    stock: 70,
-    region: "South England",
-    company: "Homebase"
-  },
-
-  // ======================================================
-  // MCDONALD'S
-  // ======================================================
-
-  {
-    name: "McDonald's - London",
-    stock: 70,
-    region: "South England",
-    company: "McDonald's"
-  },
-
-  // ======================================================
-  // HAWES MARKETPLACE
-  // ======================================================
-
-  {
-    name: "Hawes Marketplace - Hawes",
-    stock: 70,
-    region: "North England",
-    company: "Hawes Marketplace"
-  }
+  { name: "Hawes Marketplace - Hawes", stock: 70, region: "North England", company: "Hawes Marketplace" }
 
 ];
 
 // ======================================================
-// STATUS
+// HELPERS
 // ======================================================
 
-function getStatus(
-  stock
-) {
+function getStatus(stock) {
 
-  if (stock <= 30)
-    return "🔴";
+  if (stock <= 30) return "🔴";
 
-  if (stock <= 60)
-    return "🟡";
+  if (stock <= 60) return "🟡";
 
   return "🟢";
 
 }
 
-// ======================================================
-// REGION
-// ======================================================
-
-function getRdcRegion(
-  rdc
-) {
+function getRdcRegion(rdc) {
 
   if (
-    rdc.includes(
-      "Aberdeen"
-    ) ||
-    rdc.includes(
-      "Ullapool"
-    ) ||
-    rdc.includes(
-      "Oban"
-    ) ||
-    rdc.includes(
-      "Fort William"
-    )
-  ) {
-
-    return "Scotland";
-
-  }
+    rdc.includes("Aberdeen") ||
+    rdc.includes("Ullapool") ||
+    rdc.includes("Oban") ||
+    rdc.includes("Fort William")
+  ) return "Scotland";
 
   if (
-    rdc.includes(
-      "Newry"
-    ) ||
-    rdc.includes(
-      "Ballymena"
-    )
-  ) {
-
-    return
-      "Northern Ireland";
-
-  }
+    rdc.includes("Newry") ||
+    rdc.includes("Ballymena")
+  ) return "Northern Ireland";
 
   if (
-    rdc.includes(
-      "Wexford"
-    ) ||
-    rdc.includes(
-      "Waterford"
-    ) ||
-    rdc.includes(
-      "Sligo"
-    )
-  ) {
-
-    return "Ireland";
-
-  }
+    rdc.includes("Wexford") ||
+    rdc.includes("Waterford") ||
+    rdc.includes("Sligo")
+  ) return "Ireland";
 
   if (
-    rdc.includes(
-      "Swansea"
-    )
-  ) {
+    rdc.includes("Swansea")
+  ) return "Wales";
 
-    return "Wales";
-
-  }
-
-  return
-    "South England";
+  return "South England";
 
 }
 
-// ======================================================
-// ALERTS
-// ======================================================
+function groupStores() {
 
-async function sendAlert(
-  message
-) {
+  const grouped = {};
 
-  try {
+  stores.forEach(store => {
 
-    const channel =
-      await client.channels.fetch(
-        ALERTS_CHANNEL_ID
-      );
+    if (!grouped[store.company]) {
 
-    if (!channel)
-      return;
+      grouped[store.company] = [];
 
-    await channel.send(
-      message
-    );
+    }
 
-  } catch (
-    error
-  ) {
+    grouped[store.company].push(store);
 
-    console.error(
-      "Alert error:",
-      error
-    );
+  });
 
-  }
+  return grouped;
 
 }
 
-// ======================================================
-// SMART DISPATCH
-// ======================================================
+function getSmartStore(rdc) {
 
-function getSmartStore(
-  rdc
-) {
-
-  if (
-    activeEmergency
-  ) {
+  if (activeEmergency) {
 
     return activeEmergency.store;
 
   }
 
   const region =
-    getRdcRegion(
-      rdc
-    );
+    getRdcRegion(rdc);
 
   let regionalStores =
     stores.filter(
       store =>
-        store.region ===
-        region
+        store.region === region
     );
 
   if (
@@ -647,56 +277,35 @@ function getSmartStore(
 
   regionalStores.sort(
     (a, b) =>
-      a.stock -
-      b.stock
+      a.stock - b.stock
   );
 
-  const topPriority =
-    regionalStores.slice(
-      0,
-      3
-    );
-
-  return topPriority[
-    Math.floor(
-      Math.random() *
-      topPriority.length
-    )
-  ];
+  return regionalStores[0];
 
 }
 
 // ======================================================
-// GROUP STORES
+// ALERTS
 // ======================================================
 
-function groupStores() {
+async function sendAlert(message) {
 
-  const grouped = {};
+  try {
 
-  stores.forEach(
-    store => {
+    const channel =
+      await client.channels.fetch(
+        ALERTS_CHANNEL_ID
+      );
 
-      if (
-        !grouped[
-          store.company
-        ]
-      ) {
+    if (!channel) return;
 
-        grouped[
-          store.company
-        ] = [];
+    await channel.send(message);
 
-      }
+  } catch (error) {
 
-      grouped[
-        store.company
-      ].push(store);
+    console.error(error);
 
-    }
-  );
-
-  return grouped;
+  }
 
 }
 
@@ -706,11 +315,9 @@ function groupStores() {
 
 async function triggerEmergencyEvent() {
 
-  if (
-    activeEmergency
-  ) return;
+  if (activeEmergency) return;
 
-  const randomStore =
+  const store =
     stores[
       Math.floor(
         Math.random() *
@@ -721,28 +328,10 @@ async function triggerEmergencyEvent() {
   const events = [
 
     "Demand Surge",
-
-    "Supply Chain Failure",
-
     "Port Delay",
-
+    "Supply Chain Failure",
     "Weather Disruption",
-
     "Panic Buying"
-
-  ];
-
-  const impacts = [
-
-    "Critical stock depletion detected.",
-
-    "Regional supply instability reported.",
-
-    "Inbound delivery disruption confirmed.",
-
-    "Emergency replenishment required.",
-
-    "Distribution chain interruption detected."
 
   ];
 
@@ -754,55 +343,804 @@ async function triggerEmergencyEvent() {
       )
     ];
 
-  const impact =
-    impacts[
-      Math.floor(
-        Math.random() *
-        impacts.length
-      )
-    ];
-
-  randomStore.stock =
+  store.stock =
     Math.max(
       0,
-      randomStore.stock -
-      35
+      store.stock - 35
     );
 
   activeEmergency = {
 
     event,
-    impact,
-    store:
-      randomStore
+    store
 
   };
 
   await sendAlert(
 
 `🚨 SUPPLY CHAIN ALERT
-━━━━━━━━━━━━━━━━━━
 
 ⚠ EVENT:
 ${event}
 
-🏪 AFFECTED STORE:
-${randomStore.name}
+🏪 STORE:
+${store.name}
 
 🌍 REGION:
-${randomStore.region}
+${store.region}
 
-📉 IMPACT:
-${impact}
+📦 STOCK:
+${store.stock}%
 
-📦 CURRENT STOCK:
-${randomStore.stock}%
-
-🚛 ACTION REQUIRED:
-Priority restock dispatch recommended.
-
-━━━━━━━━━━━━━━━━━━`
+🚛 PRIORITY RESTOCK REQUIRED`
 
   );
 
 }
+
+// ======================================================
+// STOCK BOARD
+// ======================================================
+
+async function updateStockBoard() {
+
+  try {
+
+    const channel =
+      await client.channels.fetch(
+        STOCK_CHANNEL_ID
+      );
+
+    if (!channel) return;
+
+    const grouped =
+      groupStores();
+
+    let content =
+`╔════════════════════════╗
+      JC LOGISTICS
+        STOCK BOARD
+╚════════════════════════╝
+
+`;
+
+    if (activeEmergency) {
+
+      content +=
+`🚨 ACTIVE EMERGENCY
+${activeEmergency.store.name}
+${activeEmergency.event}
+
+`;
+
+    }
+
+    Object.keys(grouped)
+      .forEach(company => {
+
+        content +=
+`\n📦 ${company}
+━━━━━━━━━━━━━━━━━━
+`;
+
+        grouped[company]
+
+          .sort(
+            (a, b) =>
+              a.stock - b.stock
+          )
+
+          .forEach(store => {
+
+            const short =
+              store.name.split(
+                " - "
+              )[1];
+
+            content +=
+`${getStatus(store.stock)} ${short} — ${store.stock}%
+`;
+
+          });
+
+      });
+
+    const messages =
+      await channel.messages.fetch({
+        limit: 10
+      });
+
+    const existing =
+      messages.find(
+        m =>
+          m.author.id ===
+          client.user.id
+      );
+
+    if (existing) {
+
+      await existing.edit(content);
+
+    } else {
+
+      await channel.send(content);
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+}
+
+// ======================================================
+// LEADERBOARD
+// ======================================================
+
+async function updateLeaderboard() {
+
+  try {
+
+    const channel =
+      await client.channels.fetch(
+        LEADERBOARD_CHANNEL_ID
+      );
+
+    if (!channel) return;
+
+    const sorted =
+      Object.entries(driverStats)
+
+        .sort(
+          (a, b) =>
+            b[1] - a[1]
+        );
+
+    let content =
+`🏆 JC LOGISTICS LEADERBOARD
+
+`;
+
+    if (sorted.length === 0) {
+
+      content +=
+`No deliveries completed.`;
+
+    } else {
+
+      sorted.forEach(
+        (
+          [userId, count],
+          index
+        ) => {
+
+          let medal = "▫️";
+
+          if (index === 0)
+            medal = "🥇";
+
+          if (index === 1)
+            medal = "🥈";
+
+          if (index === 2)
+            medal = "🥉";
+
+          content +=
+`${medal} <@${userId}> — ${count} deliveries
+`;
+
+        }
+      );
+
+    }
+
+    const messages =
+      await channel.messages.fetch({
+        limit: 10
+      });
+
+    const existing =
+      messages.find(
+        m =>
+          m.author.id ===
+          client.user.id
+      );
+
+    if (existing) {
+
+      await existing.edit(content);
+
+    } else {
+
+      await channel.send(content);
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+  }
+
+}
+
+// ======================================================
+// TERMINAL
+// ======================================================
+
+async function createDispatchTerminal() {
+
+  const channel =
+    await client.channels.fetch(
+      JOB_CHANNEL_ID
+    );
+
+  if (!channel) return;
+
+  const menu =
+    new StringSelectMenuBuilder()
+
+      .setCustomId("rdc_select")
+
+      .setPlaceholder(
+        "Select RDC"
+      )
+
+      .addOptions(
+
+        rdcs.map(rdc => ({
+
+          label: rdc,
+          value: rdc
+
+        }))
+
+      );
+
+  const row1 =
+    new ActionRowBuilder()
+      .addComponents(menu);
+
+  const row2 =
+    new ActionRowBuilder()
+
+      .addComponents(
+
+        new ButtonBuilder()
+
+          .setCustomId(
+            "generate_job"
+          )
+
+          .setLabel(
+            "Generate Dispatch"
+          )
+
+          .setStyle(
+            ButtonStyle.Primary
+          )
+
+      );
+
+  const content =
+`┌──────────────────────────────┐
+     JC LOGISTICS TERMINAL
+└──────────────────────────────┘
+
+Select RDC below
+then generate dispatch.
+`;
+
+  const messages =
+    await channel.messages.fetch({
+      limit: 10
+    });
+
+  const existing =
+    messages.find(
+      m =>
+        m.author.id ===
+        client.user.id
+    );
+
+  if (existing) {
+
+    await existing.edit({
+
+      content,
+
+      components: [
+        row1,
+        row2
+      ]
+
+    });
+
+  } else {
+
+    await channel.send({
+
+      content,
+
+      components: [
+        row1,
+        row2
+      ]
+
+    });
+
+  }
+
+}
+
+// ======================================================
+// STOCK DRAIN
+// ======================================================
+
+setInterval(async () => {
+
+  stores.forEach(store => {
+
+    let drain =
+      Math.floor(
+        Math.random() * 10
+      ) + 5;
+
+    if (
+      store.name.includes(
+        "London"
+      )
+    ) {
+
+      drain += 8;
+
+    }
+
+    store.stock =
+      Math.max(
+        0,
+        store.stock - drain
+      );
+
+  });
+
+  if (Math.random() < 0.3) {
+
+    await triggerEmergencyEvent();
+
+  }
+
+  await updateStockBoard();
+
+}, 86400000);
+
+// ======================================================
+// READY
+// ======================================================
+
+client.once("ready", async () => {
+
+  console.log(
+    `Bot online: ${client.user.tag}`
+  );
+
+  await createDispatchTerminal();
+
+  await updateStockBoard();
+
+  await updateLeaderboard();
+
+});
+
+// ======================================================
+// INTERACTIONS
+// ======================================================
+
+client.on(
+  "interactionCreate",
+
+  async interaction => {
+
+    try {
+
+      // ==================================================
+      // SELECT MENU
+      // ==================================================
+
+      if (
+        interaction.isStringSelectMenu()
+      ) {
+
+        if (
+          interaction.customId ===
+          "rdc_select"
+        ) {
+
+          selectedRdc[
+            interaction.user.id
+          ] =
+            interaction.values[0];
+
+          return await interaction.reply({
+
+            content:
+`✅ RDC Selected
+
+${interaction.values[0]}`,
+
+            ephemeral: true
+
+          });
+
+        }
+
+      }
+
+      // ==================================================
+      // BUTTONS
+      // ==================================================
+
+      if (
+        interaction.isButton()
+      ) {
+
+        // ==============================================
+        // GENERATE JOB
+        // ==============================================
+
+        if (
+          interaction.customId ===
+          "generate_job"
+        ) {
+
+          if (
+            activeDrivers[
+              interaction.user.id
+            ]
+          ) {
+
+            return await interaction.reply({
+
+              content:
+                "❌ You already have an active job.",
+
+              ephemeral: true
+
+            });
+
+          }
+
+          const rdc =
+            selectedRdc[
+              interaction.user.id
+            ];
+
+          if (!rdc) {
+
+            return await interaction.reply({
+
+              content:
+                "❌ Select an RDC first.",
+
+              ephemeral: true
+
+            });
+
+          }
+
+          const store =
+            getSmartStore(rdc);
+
+          const emergency =
+            activeEmergency &&
+            store.name ===
+            activeEmergency.store.name;
+
+          const jobId =
+            "J-" +
+
+            Math.floor(
+              Math.random() *
+              100000
+            );
+
+          activeDrivers[
+            interaction.user.id
+          ] = true;
+
+          activeJobs.push({
+
+            id: jobId,
+
+            user:
+              interaction.user.id,
+
+            store:
+              store.name
+
+          });
+
+          saveData(
+            ACTIVE_DRIVERS_FILE,
+            activeDrivers
+          );
+
+          saveData(
+            ACTIVE_JOBS_FILE,
+            activeJobs
+          );
+
+          const row =
+            new ActionRowBuilder()
+
+              .addComponents(
+
+                new ButtonBuilder()
+
+                  .setCustomId(
+                    `complete_${jobId}`
+                  )
+
+                  .setLabel(
+                    "Complete Delivery"
+                  )
+
+                  .setStyle(
+                    ButtonStyle.Success
+                  )
+
+              );
+
+          const activeChannel =
+            await client.channels.fetch(
+              ACTIVE_JOBS_CHANNEL_ID
+            );
+
+          let priority =
+            "STANDARD";
+
+          if (emergency) {
+
+            priority =
+              "🚨 EMERGENCY";
+
+          }
+
+          const content =
+`┌──────────────────────────────┐
+      ACTIVE DISPATCH
+└──────────────────────────────┘
+
+👤 DRIVER:
+<@${interaction.user.id}>
+
+🚚 JOB ID:
+${jobId}
+
+🏭 RDC:
+${rdc}
+
+🌍 REGION:
+${store.region}
+
+🏪 STORE:
+${store.name}
+
+⚠ PRIORITY:
+${priority}
+
+📦 STOCK:
+${store.stock}%
+
+📋 STATUS:
+IN TRANSIT
+`;
+
+          await activeChannel.send({
+
+            content,
+
+            components: [row]
+
+          });
+
+          await interaction.reply({
+
+            content:
+              "✅ Dispatch generated.",
+
+            ephemeral: true
+
+          });
+
+        }
+
+        // ==============================================
+        // COMPLETE DELIVERY
+        // ==============================================
+
+        if (
+          interaction.customId.startsWith(
+            "complete_"
+          )
+        ) {
+
+          const jobId =
+            interaction.customId.split(
+              "_"
+            )[1];
+
+          const job =
+            activeJobs.find(
+              j =>
+                j.id === jobId
+            );
+
+          if (!job) {
+
+            return await interaction.reply({
+
+              content:
+                "❌ Job not found.",
+
+              ephemeral: true
+
+            });
+
+          }
+
+          const store =
+            stores.find(
+              s =>
+                s.name ===
+                job.store
+            );
+
+          store.stock =
+            Math.min(
+              100,
+              store.stock + 25
+            );
+
+          delete activeDrivers[
+            job.user
+          ];
+
+          activeJobs =
+            activeJobs.filter(
+              j =>
+                j.id !== jobId
+            );
+
+          if (
+            !driverStats[
+              job.user
+            ]
+          ) {
+
+            driverStats[
+              job.user
+            ] = 0;
+
+          }
+
+          driverStats[
+            job.user
+          ]++;
+
+          saveData(
+            DRIVER_STATS_FILE,
+            driverStats
+          );
+
+          saveData(
+            ACTIVE_DRIVERS_FILE,
+            activeDrivers
+          );
+
+          saveData(
+            ACTIVE_JOBS_FILE,
+            activeJobs
+          );
+
+          if (
+            activeEmergency &&
+            activeEmergency.store.name ===
+            store.name
+          ) {
+
+            await sendAlert(
+
+`✅ EMERGENCY RESOLVED
+
+🏪 STORE:
+${store.name}
+
+📦 STOCK:
+${store.stock}%
+
+Priority restock completed.`
+
+            );
+
+            activeEmergency =
+              null;
+
+          }
+
+          await updateStockBoard();
+
+          await updateLeaderboard();
+
+          const disabledRow =
+            new ActionRowBuilder()
+
+              .addComponents(
+
+                new ButtonBuilder()
+
+                  .setCustomId(
+                    `complete_${jobId}`
+                  )
+
+                  .setLabel(
+                    "Delivery Complete"
+                  )
+
+                  .setStyle(
+                    ButtonStyle.Secondary
+                  )
+
+                  .setDisabled(true)
+
+              );
+
+          await interaction.update({
+
+            content:
+`✅ DELIVERY COMPLETE
+
+🚚 JOB ID:
+${jobId}
+
+🏪 STORE:
+${store.name}
+
+📦 UPDATED STOCK:
+${store.stock}%
+
+📈 DRIVER TOTAL:
+${driverStats[job.user]}
+`,
+
+            components: [
+              disabledRow
+            ]
+
+          });
+
+        }
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "INTERACTION ERROR:",
+        error
+      );
+
+    }
+
+  }
+);
+
+// ======================================================
+// LOGIN
+// ======================================================
+
+client.login(
+  process.env.TOKEN
+);
