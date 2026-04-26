@@ -65,23 +65,27 @@ console.log('Bot online: ' + readyClient.user.tag);
 
 const commands = [
 
-new SlashCommandBuilder()
-  .setName('job')
-  .setDescription('Generate a delivery job'),
+{
+  name: 'job',
+  description: 'Generate a delivery job'
+},
 
-new SlashCommandBuilder()
-  .setName('stock')
-  .setDescription('View stock levels'),
+{
+  name: 'stock',
+  description: 'View stock levels'
+},
 
-new SlashCommandBuilder()
-  .setName('deplete')
-  .setDescription('Deplete stock'),
+{
+  name: 'deplete',
+  description: 'Deplete stock'
+},
 
-new SlashCommandBuilder()
-  .setName('stats')
-  .setDescription('View your driver stats')
+{
+  name: 'stats',
+  description: 'View driver stats'
+}
 
-].map(command => command.toJSON());
+];
 
 const rest = new REST({ version: '10' })
 .setToken(process.env.TOKEN);
@@ -177,12 +181,13 @@ if (interaction.isChatInputCommand()) {
 
     const stats = driverStats[interaction.user.id];
 
-    const completed = stats ? stats.completedJobs : 0;
+    const completed = stats
+      ? stats.completedJobs
+      : 0;
 
     await interaction.reply({
       content:
         '📊 DRIVER STATS\n\n' +
-        'Driver: ' + interaction.user.username + '\n' +
         'Completed Jobs: ' + completed,
       ephemeral: true
     });
