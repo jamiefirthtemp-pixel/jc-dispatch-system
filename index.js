@@ -29,8 +29,6 @@ const STOCK_CHANNEL_ID = "1497749476234760342";
 
 const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
 
-const DRIVER_STATS_CHANNEL_ID = "1497749336321429534";
-
 const LEADERBOARD_CHANNEL_ID = "1497941626260295803";
 
 // ======================================================
@@ -150,6 +148,13 @@ let driverStats =
   );
 
 // ======================================================
+// EMERGENCY EVENTS
+// ======================================================
+
+let activeEmergency =
+  null;
+
+// ======================================================
 // RDCS
 // ======================================================
 
@@ -185,8 +190,6 @@ const rdcs = [
 // ======================================================
 
 const stores = [
-
-  // TESCO
 
   {
     name: "Tesco - Dublin",
@@ -279,8 +282,6 @@ const stores = [
     company: "Tesco"
   },
 
-  // ALDI
-
   {
     name: "Aldi - Porthmadog",
     stock: 70,
@@ -315,8 +316,6 @@ const stores = [
     region: "South England",
     company: "Aldi"
   },
-
-  // LIDL
 
   {
     name: "Lidl - Perth",
@@ -388,7 +387,7 @@ function getStatus(
 }
 
 // ======================================================
-// REGION MAPPING
+// REGION
 // ======================================================
 
 function getRdcRegion(
@@ -467,6 +466,16 @@ function getSmartStore(
   rdc
 ) {
 
+  // emergency override
+
+  if (
+    activeEmergency
+  ) {
+
+    return activeEmergency;
+
+  }
+
   const region =
     getRdcRegion(
       rdc
@@ -479,8 +488,6 @@ function getSmartStore(
         region
     );
 
-  // fallback
-
   if (
     regionalStores.length === 0
   ) {
@@ -490,15 +497,11 @@ function getSmartStore(
 
   }
 
-  // prioritise low stock
-
   regionalStores.sort(
     (a, b) =>
       a.stock -
       b.stock
   );
-
-  // weighted low-stock choice
 
   const topPriority =
     regionalStores.slice(
@@ -546,6 +549,71 @@ function groupStores() {
   );
 
   return grouped;
+
+}
+
+// ======================================================
+// EMERGENCY EVENT SYSTEM
+// ======================================================
+
+function triggerEmergencyEvent() {
+
+  const randomStore =
+    stores[
+      Math.floor(
+        Math.random() *
+        stores.length
+      )
+    ];
+
+  const events = [
+
+    "Demand Surge",
+
+    "Supply Chain Failure",
+
+    "Port Delay",
+
+    "Weather Disruption",
+
+    "Panic Buying"
+
+  ];
+
+  const event =
+    events[
+      Math.floor(
+        Math.random() *
+        events.length
+      )
+    ];
+
+  randomStore.stock =
+    Math.max(
+      0,
+      randomStore.stock -
+      35
+    );
+
+  activeEmergency =
+    randomStore;
+
+  console.log(
+    `EMERGENCY EVENT:
+${event}
+${randomStore.name}`
+  );
+
+  setTimeout(() => {
+
+    activeEmergency =
+      null;
+
+    console.log(
+      "Emergency cleared."
+    );
+
+  }, 3600000);
 
 }
 
@@ -601,6 +669,23 @@ async function updateStockBoard() {
 🟡 Low Stock Stores: ${low}
 
 `;
+
+    // emergency banner
+
+    if (
+      activeEmergency
+    ) {
+
+      content +=
+`🚨 ACTIVE EMERGENCY
+━━━━━━━━━━━━━━━━━━
+${activeEmergency.name}
+
+PRIORITY RESTOCK REQUIRED
+
+`;
+
+    }
 
     Object.keys(
       grouped
@@ -967,7 +1052,8 @@ setInterval(
             12
           ) + 4;
 
-        // city stores drain faster
+        // london stores
+        // drain faster
 
         if (
           store.name.includes(
@@ -975,7 +1061,7 @@ setInterval(
           )
         ) {
 
-          drain += 6;
+          drain += 8;
 
         }
 
@@ -988,6 +1074,18 @@ setInterval(
 
       }
     );
+
+    // 30% chance
+    // of emergency
+
+    if (
+      Math.random() <
+      0.3
+    ) {
+
+      triggerEmergencyEvent();
+
+    }
 
     await updateStockBoard();
 
@@ -1030,10 +1128,6 @@ client.on(
 
     try {
 
-      // ==================================================
-      // RDC SELECT
-      // ==================================================
-
       if (
         interaction.isStringSelectMenu()
       ) {
@@ -1061,10 +1155,6 @@ ${interaction.values[0]}`
         }
 
       }
-
-      // ==================================================
-      // BUTTONS
-      // ==================================================
 
       if (
         interaction.isButton()
@@ -1116,6 +1206,11 @@ ${interaction.values[0]}`
             getSmartStore(
               rdc
             );
+
+          const emergency =
+            activeEmergency &&
+            store.name ===
+            activeEmergency.name;
 
           const jobId =
             "J-" +
@@ -1178,6 +1273,18 @@ ${interaction.values[0]}`
               ACTIVE_JOBS_CHANNEL_ID
             );
 
+          let priority =
+            "STANDARD";
+
+          if (
+            emergency
+          ) {
+
+            priority =
+              "🚨 EMERGENCY";
+
+          }
+
           const content =
 `┌──────────────────────────────┐
       ACTIVE DISPATCH
@@ -1197,6 +1304,9 @@ ${store.region}
 
 🏪 STORE:
 ${store.name}
+
+⚠ PRIORITY:
+${priority}
 
 📦 STOCK:
 ${store.stock}%
@@ -1224,7 +1334,7 @@ IN TRANSIT
 
             interaction,
 
-            "✅ Smart dispatch generated."
+            "✅ Dispatch generated."
 
           );
 
@@ -1318,6 +1428,20 @@ IN TRANSIT
             ACTIVE_JOBS_FILE,
             activeJobs
           );
+
+          // clear emergency
+          // after delivery
+
+          if (
+            activeEmergency &&
+            activeEmergency.name ===
+            store.name
+          ) {
+
+            activeEmergency =
+              null;
+
+          }
 
           await updateStockBoard();
 
