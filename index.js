@@ -50,50 +50,50 @@ const rdcs = [
 
 const stores = [
 
-{ name: 'ALDI', location: 'PORTHMADOG', stock: 45 },
-{ name: 'ALDI', location: 'WATERFORD', stock: 55 },
-{ name: 'ALDI', location: 'SHEFFIELD', stock: 70 },
-{ name: 'ALDI', location: 'NEWCASTLE', stock: 35 },
-{ name: 'ALDI', location: 'LONDON', stock: 20 },
+{ name: 'ALDI', location: 'PORTHMADOG', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'ALDI', location: 'WATERFORD', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'ALDI', location: 'SHEFFIELD', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'ALDI', location: 'NEWCASTLE', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'ALDI', location: 'LONDON', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'HAWES MARKETPLACE', location: 'HAWES', stock: 60 },
+{ name: 'HAWES MARKETPLACE', location: 'HAWES', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'DREAMS', location: 'EXETER', stock: 50 },
+{ name: 'DREAMS', location: 'EXETER', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'HOMEBASE', location: 'EXETER', stock: 40 },
-{ name: 'HOMEBASE', location: 'PLYMOUTH', stock: 65 },
+{ name: 'HOMEBASE', location: 'EXETER', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'HOMEBASE', location: 'PLYMOUTH', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'IKEA', location: 'CROYDON', stock: 25 },
-{ name: 'IKEA', location: 'DOUGLAS', stock: 45 },
-{ name: 'IKEA', location: 'DUBLIN', stock: 35 },
+{ name: 'IKEA', location: 'CROYDON', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'IKEA', location: 'DOUGLAS', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'IKEA', location: 'DUBLIN', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'LIDL', location: 'PERTH', stock: 60 },
-{ name: 'LIDL', location: 'EDINBURGH', stock: 30 },
-{ name: 'LIDL', location: 'WATERFORD', stock: 40 },
-{ name: 'LIDL', location: 'SWANSEA', stock: 20 },
-{ name: 'LIDL', location: 'SOUTHAMPTON', stock: 55 },
-{ name: 'LIDL', location: 'CANTERBURY', stock: 45 },
-{ name: 'LIDL', location: 'ANTRIM', stock: 25 },
+{ name: 'LIDL', location: 'PERTH', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'LIDL', location: 'EDINBURGH', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'LIDL', location: 'WATERFORD', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'LIDL', location: 'SWANSEA', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'LIDL', location: 'SOUTHAMPTON', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'LIDL', location: 'CANTERBURY', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'LIDL', location: 'ANTRIM', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'MCDONALDS', location: 'LONDON', stock: 50 },
+{ name: 'MCDONALDS', location: 'LONDON', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'SAINSBURYS', location: 'EXETER', stock: 35 },
-{ name: 'SAINSBURYS', location: 'NEWPORT', stock: 25 },
-{ name: 'SAINSBURYS', location: 'LISBURN', stock: 40 },
+{ name: 'SAINSBURYS', location: 'EXETER', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'SAINSBURYS', location: 'NEWPORT', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'SAINSBURYS', location: 'LISBURN', stock: Math.floor(Math.random() * 41) + 60 },
 
-{ name: 'TESCO', location: 'DUBLIN', stock: 30 },
-{ name: 'TESCO', location: 'BELFAST', stock: 45 },
-{ name: 'TESCO', location: 'ANTRIM', stock: 20 },
-{ name: 'TESCO', location: 'DUMFRIES', stock: 50 },
-{ name: 'TESCO', location: 'HOLYHEAD', stock: 35 },
-{ name: 'TESCO', location: 'PORTHMADOG', stock: 25 },
-{ name: 'TESCO', location: 'ABERYSTWYTH', stock: 40 },
-{ name: 'TESCO', location: 'FOLKESTONE', stock: 30 },
-{ name: 'TESCO', location: 'LONDON', stock: 15 },
-{ name: 'TESCO', location: 'CHELMSFORD', stock: 55 },
-{ name: 'TESCO', location: 'NORWICH', stock: 45 },
-{ name: 'TESCO', location: 'ULLAPOOL', stock: 20 },
-{ name: 'TESCO', location: 'STORNOWAY', stock: 35 }
+{ name: 'TESCO', location: 'DUBLIN', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'BELFAST', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'ANTRIM', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'DUMFRIES', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'HOLYHEAD', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'PORTHMADOG', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'ABERYSTWYTH', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'FOLKESTONE', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'LONDON', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'CHELMSFORD', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'NORWICH', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'ULLAPOOL', stock: Math.floor(Math.random() * 41) + 60 },
+{ name: 'TESCO', location: 'STORNOWAY', stock: Math.floor(Math.random() * 41) + 60 }
 
 ];
 
@@ -145,7 +145,17 @@ function decreaseStock() {
 
 stores.forEach(store => {
 
-store.stock -= 5;
+/* Tesco depletes faster */
+
+if (store.name === 'TESCO') {
+
+  store.stock -= 16;
+
+} else {
+
+  store.stock -= 14.3;
+
+}
 
 if (store.stock < 0) {
   store.stock = 0;
@@ -177,7 +187,7 @@ stockText +=
   ' - ' +
   store.location +
   ' | ' +
-  store.stock +
+  Math.round(store.stock) +
   '%\n';
 
 }
@@ -311,7 +321,7 @@ await channel.send({
 
 }
 
-/* AUTO STOCK DEPLETION */
+/* DAILY STOCK DEPLETION */
 
 setInterval(() => {
 
@@ -319,7 +329,7 @@ decreaseStock();
 
 updateStockBoard();
 
-}, 300000);
+}, 86400000);
 
 /* AUTO DRIVER BOARD REFRESH */
 
@@ -367,419 +377,6 @@ await rest.put(
 
 await updateStockBoard();
 await updateDriverBoard();
-
-}
-
-);
-
-/* INTERACTIONS */
-
-client.on(
-Events.InteractionCreate,
-async (interaction) => {
-
-try {
-
-  if (
-    interaction.isChatInputCommand()
-  ) {
-
-    if (
-      interaction.commandName === 'job'
-    ) {
-
-      if (
-        activeJobs[
-          interaction.user.id
-        ]
-      ) {
-
-        await interaction.reply({
-
-          content:
-            '❌ You already have an active job.',
-
-          ephemeral: true
-
-        });
-
-        return;
-
-      }
-
-      const menu =
-        new StringSelectMenuBuilder()
-
-          .setCustomId(
-            'select_rdc'
-          )
-
-          .setPlaceholder(
-            'Select RDC'
-          )
-
-          .addOptions(
-
-            rdcs.map(rdc => ({
-
-              label:
-                rdc.name +
-                ' - ' +
-                rdc.location,
-
-              value: rdc.id
-
-            }))
-
-          );
-
-      const row =
-        new ActionRowBuilder()
-          .addComponents(menu);
-
-      await interaction.reply({
-
-        content: '🏭 Select RDC',
-
-        components: [row],
-
-        ephemeral: true
-
-      });
-
-    }
-
-  }
-
-  if (
-    interaction.isStringSelectMenu()
-  ) {
-
-    if (
-      interaction.customId ===
-      'select_rdc'
-    ) {
-
-      const rdc =
-        rdcs.find(
-          r =>
-            r.id ===
-            interaction.values[0]
-        );
-
-      const store =
-        getLowestStockStore();
-
-      const jobId =
-        generateJobId();
-
-      activeJobs[
-        interaction.user.id
-      ] = {
-
-        jobId,
-
-        storeName:
-          store.name,
-
-        storeLocation:
-          store.location
-
-      };
-
-      const embed =
-        new EmbedBuilder()
-
-          .setTitle(
-            '🚛 JC LOGISTICS DISPATCH'
-          )
-
-          .setColor(0x0099ff)
-
-          .addFields(
-
-            {
-              name: '📦 JOB ID',
-              value: jobId
-            },
-
-            {
-              name: '🏭 RDC',
-              value:
-                rdc.name +
-                ' - ' +
-                rdc.location
-            },
-
-            {
-              name: '🏪 DELIVERY',
-              value:
-                store.name +
-                ' - ' +
-                store.location
-            },
-
-            {
-              name: '📊 PRIORITY',
-              value:
-                getTraffic(
-                  store.stock
-                ) +
-                ' | ' +
-                store.stock +
-                '%'
-            }
-
-          )
-
-          .setTimestamp();
-
-      const row =
-        new ActionRowBuilder()
-
-          .addComponents(
-
-            new ButtonBuilder()
-
-              .setCustomId(
-                'complete_delivery'
-              )
-
-              .setLabel(
-                'COMPLETE DELIVERY'
-              )
-
-              .setStyle(
-                ButtonStyle.Success
-              )
-
-          );
-
-      await interaction.update({
-
-        embeds: [embed],
-
-        components: [row]
-
-      });
-
-      const dispatchChannel =
-        await client.channels.fetch(
-          DISPATCH_CHANNEL_ID
-        );
-
-      if (dispatchChannel) {
-
-        const dispatchEmbed =
-          new EmbedBuilder()
-
-            .setTitle(
-              '🚚 ACTIVE DELIVERY'
-            )
-
-            .setColor(0xff9900)
-
-            .addFields(
-
-              {
-                name: '👤 DRIVER',
-                value:
-                  interaction.user.username
-              },
-
-              {
-                name: '📦 JOB ID',
-                value: jobId
-              },
-
-              {
-                name: '🏭 RDC',
-                value:
-                  rdc.name +
-                  ' - ' +
-                  rdc.location
-              },
-
-              {
-                name: '🏪 STORE',
-                value:
-                  store.name +
-                  ' - ' +
-                  store.location
-              },
-
-              {
-                name: '📊 STATUS',
-                value:
-                  'IN TRANSIT'
-              }
-
-            )
-
-            .setTimestamp();
-
-        const dispatchMessage =
-          await dispatchChannel.send({
-            embeds: [dispatchEmbed]
-          });
-
-        activeJobs[
-          interaction.user.id
-        ].dispatchMessageId =
-          dispatchMessage.id;
-
-      }
-
-    }
-
-  }
-
-  if (interaction.isButton()) {
-
-    if (
-      interaction.customId ===
-      'complete_delivery'
-    ) {
-
-      const job =
-        activeJobs[
-          interaction.user.id
-        ];
-
-      if (!job) {
-
-        await interaction.reply({
-
-          content:
-            'No active job.',
-
-          ephemeral: true
-
-        });
-
-        return;
-
-      }
-
-      increaseStock(
-        job.storeName,
-        job.storeLocation
-      );
-
-      if (
-        !driverStats[
-          interaction.user.id
-        ]
-      ) {
-
-        driverStats[
-          interaction.user.id
-        ] = {
-
-          username:
-            interaction.user.username,
-
-          completedJobs: 0
-
-        };
-
-      }
-
-      driverStats[
-        interaction.user.id
-      ].completedJobs += 1;
-
-      const dispatchChannel =
-        await client.channels.fetch(
-          DISPATCH_CHANNEL_ID
-        );
-
-      if (
-        dispatchChannel &&
-        job.dispatchMessageId
-      ) {
-
-        const message =
-          await dispatchChannel.messages.fetch(
-            job.dispatchMessageId
-          );
-
-        const completedEmbed =
-          new EmbedBuilder()
-
-            .setTitle(
-              '✅ DELIVERY COMPLETED'
-            )
-
-            .setColor(0x00cc66)
-
-            .addFields(
-
-              {
-                name: '👤 DRIVER',
-                value:
-                  interaction.user.username
-              },
-
-              {
-                name: '📦 JOB ID',
-                value:
-                  job.jobId
-              },
-
-              {
-                name: '🏪 STORE',
-                value:
-                  job.storeName +
-                  ' - ' +
-                  job.storeLocation
-              },
-
-              {
-                name: '📊 STATUS',
-                value:
-                  'DELIVERED'
-              }
-
-            )
-
-            .setTimestamp();
-
-        await message.edit({
-
-          embeds: [completedEmbed],
-
-          components: []
-
-        });
-
-      }
-
-      delete activeJobs[
-        interaction.user.id
-      ];
-
-      await updateStockBoard();
-      await updateDriverBoard();
-
-      await interaction.reply({
-
-        content:
-          '✅ DELIVERY COMPLETED',
-
-        ephemeral: true
-
-      });
-
-    }
-
-  }
-
-} catch (error) {
-
-  console.log(error);
-
-}
 
 }
 
