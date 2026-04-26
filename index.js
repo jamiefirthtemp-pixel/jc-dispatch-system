@@ -1,5 +1,4 @@
 require("dotenv").config();
-
 const fs = require("fs");
 
 const {
@@ -10,7 +9,9 @@ const {
   ButtonStyle,
   StringSelectMenuBuilder,
   SlashCommandBuilder,
-  PermissionFlagsBits
+  PermissionFlagsBits,
+  REST,
+  Routes
 } = require("discord.js");
 
 // ======================================================
@@ -22,7 +23,7 @@ const client = new Client({
 });
 
 // ======================================================
-// CHANNELS
+// CONFIG
 // ======================================================
 
 const JOB_CHANNEL_ID = "1497716778791342120";
@@ -31,246 +32,73 @@ const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
 const LEADERBOARD_CHANNEL_ID = "1497941626260295803";
 const ALERTS_CHANNEL_ID = "1497948012603904000";
 
-// ======================================================
-// SAVE FILES
-// ======================================================
+const DATA_FILE = "./state.json";
 
-const DRIVER_STATS_FILE = "./driverStats.json";
-const ACTIVE_DRIVERS_FILE = "./activeDrivers.json";
-const ACTIVE_JOBS_FILE = "./activeJobs.json";
+const MAX_ACTIVE_INCIDENTS = 3;
+const INCIDENT_EXPIRY_MS = 1000 * 60 * 30;
+const INCIDENT_COOLDOWN_MS = 1000 * 60 * 5;
 
 // ======================================================
-// SAVE / LOAD
+// STATE
 // ======================================================
 
-function loadData(file, fallback) {
+const defaultState = {
+  selectedRdc: {},
+  activeDrivers: {},
+  driverStats: {},
+  dispatches: [],
+  incidents: [],
+  lastIncidentAt: 0,
+  lastCompanyDispatched: null,
+  stores: [
+    { id: 1, name: "Tesco - London", company: "Tesco", region: "South England", stock: 70 },
+    { id: 2, name: "Tesco - Aberdeen", company: "Tesco", region: "Scotland", stock: 70 },
+    { id: 3, name: "Tesco - Belfast", company: "Tesco", region: "Northern Ireland", stock: 70 },
+    { id: 4, name: "Aldi - Newcastle", company: "Aldi", region: "North England", stock: 70 },
+    { id: 5, name: "Aldi - London", company: "Aldi", region: "South England", stock: 70 },
+    { id: 6, name: "Lidl - Swansea", company: "Lidl", region: "Wales", stock: 70 },
+    { id: 7, name: "Lidl - Edinburgh", company: "Lidl", region: "Scotland", stock: 70 },
+    { id: 8, name: "Sainsbury's - Exeter", company: "Sainsbury's", region: "South England", stock: 70 },
+    { id: 9, name: "IKEA - Croydon", company: "IKEA", region: "South England", stock: 70 },
+    { id: 10, name: "Homebase - Plymouth", company: "Homebase", region: "South England", stock: 70 },
+    { id: 11, name: "Dreams - Exeter", company: "Dreams", region: "South England", stock: 70 },
+    { id: 12, name: "McDonald's - London", company: "McDonald's", region: "South England", stock: 70 }
+  ]
+};
 
+let state = loadState();
+
+// ======================================================
+// LOAD / SAVE
+// ======================================================
+
+function loadState() {
   try {
-
-    if (fs.existsSync(file)) {
-
-      return JSON.parse(
-        fs.readFileSync(file)
-      );
-
+    if (!fs.existsSync(DATA_FILE)) {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(defaultState, null, 2));
+      return structuredClone(defaultState);
     }
 
-    return fallback;
-
+    return JSON.parse(fs.readFileSync(DATA_FILE));
   } catch {
-
-    return fallback;
-
+    return structuredClone(defaultState);
   }
-
 }
 
-function saveData(file, data) {
-
-  fs.writeFileSync(
-    file,
-    JSON.stringify(
-      data,
-      null,
-      2
-    )
-  );
-
+function saveState() {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2));
 }
 
 // ======================================================
-// DATA
+// RDCS
 // ======================================================
 
-let selectedRdc = {};
-
-let activeDrivers =
-  loadData(
-    ACTIVE_DRIVERS_FILE,
-    {}
-  );
-
-let activeJobs =
-  loadData(
-    ACTIVE_JOBS_FILE,
-    []
-  );
-
-let driverStats =
-  loadData(
-    DRIVER_STATS_FILE,
-    {}
-  );
-
-let activeEmergency = null;
-
-let lastCompanyDispatched = null;
-
-// ======================================================
-// TEMP REPLY
-// ======================================================
-
-async function tempReply(
-  interaction,
-  content,
-  time = 3000
-) {
-
-  await interaction.reply({
-
-    content,
-    ephemeral: true
-
-  });
-
-  setTimeout(async () => {
-
-    try {
-
-      await interaction.deleteReply();
-
-    } catch {}
-
-  }, time);
-
-}
-
-// ======================================================
-// CONTRACTS
-// ======================================================
-
-const contracts = [
-
-  {
-    company: "Tesco",
-    bonusPoints: 1,
-    priorityChance: 0.35
-  },
-
-  {
-    company: "Aldi",
-    bonusPoints: 1,
-    priorityChance: 0.20
-  },
-
-  {
-    company: "Lidl",
-    bonusPoints: 1,
-    priorityChance: 0.20
-  },
-
-  {
-    company: "Sainsbury's",
-    bonusPoints: 2,
-    priorityChance: 0.15
-  },
-
-  {
-    company: "IKEA",
-    bonusPoints: 2,
-    priorityChance: 0.10
-  }
-
-];
-
-// ======================================================
-// INCIDENT SEVERITY
-// ======================================================
-
-const severityLevels = [
-
-  {
-    name: "MINOR",
-    stockLoss: 15
-  },
-
-  {
-    name: "MAJOR",
-    stockLoss: 30
-  },
-
-  {
-    name: "CRITICAL",
-    stockLoss: 50
-  },
-
-  {
-    name: "NATIONAL SUPPLY CRISIS",
-    stockLoss: 70
-  }
-
-];
-
-// ======================================================
-// ALERT SCENARIOS
-// ======================================================
-
-const alertScenarios = [
-
-  {
-    title: "Ferry Cancellation",
-    impact:
-      "Irish freight crossings suspended due to severe weather.",
-    action:
-      "Emergency rerouting required."
-  },
-
-  {
-    title: "Power Failure",
-    impact:
-      "Store refrigeration systems offline.",
-    action:
-      "Priority chilled goods delivery required."
-  },
-
-  {
-    title: "Warehouse Conveyor Failure",
-    impact:
-      "Distribution processing delays confirmed.",
-    action:
-      "Backup RDC dispatching recommended."
-  },
-
-  {
-    title: "Port Congestion",
-    impact:
-      "Inbound container shipments delayed.",
-    action:
-      "Critical stock protection procedures active."
-  },
-
-  {
-    title: "Motorway Closure",
-    impact:
-      "Primary freight routes blocked by collision incident.",
-    action:
-      "Regional dispatch rerouting required."
-  },
-
-  {
-    title: "Unexpected Demand Surge",
-    impact:
-      "Store experiencing rapid stock depletion.",
-    action:
-      "Immediate replenishment dispatch required."
-  },
-
-  {
-    title: "Cold Storage Failure",
-    impact:
-      "Temperature-sensitive goods at risk.",
-    action:
-      "Emergency refrigerated transport needed."
-  },
-
-  {
-    title: "Driver Shortage",
-    impact:
-      "Regional delivery capacity reduced.",
-    action:
-      "Priority dispatch allocation active."
-  }
-
+const rdcs = [
+  "DHL - Aberdeen",
+  "DHL - Portsmouth",
+  "DSV - Waterford",
+  "Stobart/Culina - Swansea",
+  "XPO Logistics - London"
 ];
 
 // ======================================================
@@ -278,632 +106,191 @@ const alertScenarios = [
 // ======================================================
 
 const jobTypes = [
-
   {
-    name:
-      "📦 Standard Delivery",
-
-    stockBoost: 25,
-
+    name: "📦 Standard Delivery",
+    boost: 25,
     points: 1,
-
-    priority:
-      "STANDARD"
+    priority: "STANDARD"
   },
-
   {
-    name:
-      "🚨 Emergency Restock",
-
-    stockBoost: 40,
-
+    name: "❄ Refrigerated Goods",
+    boost: 35,
     points: 3,
-
-    priority:
-      "CRITICAL"
+    priority: "HIGH"
   },
-
   {
-    name:
-      "❄ Refrigerated Goods",
-
-    stockBoost: 30,
-
-    points: 2,
-
-    priority:
-      "HIGH"
-  },
-
-  {
-    name:
-      "⚡ Critical Supply Transfer",
-
-    stockBoost: 50,
-
-    points: 4,
-
-    priority:
-      "SEVERE"
+    name: "⚡ Critical Supply Transfer",
+    boost: 50,
+    points: 5,
+    priority: "CRITICAL"
   }
-
 ];
 
 // ======================================================
-// RDCS
+// INCIDENT SCENARIOS
 // ======================================================
 
-const rdcs = [
-
-  "DHL - Ullapool",
-  "DHL - Oban",
-  "DHL - Aberdeen",
-  "DHL - Newport",
-  "DHL - Portsmouth",
-
-  "DSV - Newry",
-  "DSV - Wexford",
-  "DSV - Waterford",
-  "DSV - Newport",
-
-  "XPO Logistics - London",
-  "XPO Logistics - Dover",
-
-  "Stobart/Culina - Sligo",
-  "Stobart/Culina - Ballymena",
-  "Stobart/Culina - Fort William",
-  "Stobart/Culina - Carlisle",
-  "Stobart/Culina - Ullapool",
-  "Stobart/Culina - Swansea",
-  "Stobart/Culina - Croydon",
-  "Stobart/Culina - Portsmouth"
-
-];
-
-// ======================================================
-// STORES
-// ======================================================
-
-const stores = [
-
-  { name: "Tesco - Dublin", stock: 70, region: "Ireland", company: "Tesco" },
-  { name: "Tesco - Belfast", stock: 70, region: "Northern Ireland", company: "Tesco" },
-  { name: "Tesco - Antrim", stock: 70, region: "Northern Ireland", company: "Tesco" },
-  { name: "Tesco - Dumfries", stock: 70, region: "Scotland", company: "Tesco" },
-  { name: "Tesco - Holyhead", stock: 70, region: "Wales", company: "Tesco" },
-  { name: "Tesco - Porthmadog", stock: 70, region: "Wales", company: "Tesco" },
-  { name: "Tesco - Aberystwyth", stock: 70, region: "Wales", company: "Tesco" },
-  { name: "Tesco - Folkestone", stock: 70, region: "South England", company: "Tesco" },
-  { name: "Tesco - London", stock: 70, region: "South England", company: "Tesco" },
-  { name: "Tesco - Chelmsford", stock: 70, region: "South England", company: "Tesco" },
-  { name: "Tesco - Norwich", stock: 70, region: "South England", company: "Tesco" },
-  { name: "Tesco - Ullapool", stock: 70, region: "Scotland", company: "Tesco" },
-  { name: "Tesco - Stornoway", stock: 70, region: "Scotland", company: "Tesco" },
-
-  { name: "Aldi - Porthmadog", stock: 70, region: "Wales", company: "Aldi" },
-  { name: "Aldi - Waterford", stock: 70, region: "Ireland", company: "Aldi" },
-  { name: "Aldi - Sheffield", stock: 70, region: "North England", company: "Aldi" },
-  { name: "Aldi - Newcastle", stock: 70, region: "North England", company: "Aldi" },
-  { name: "Aldi - London", stock: 70, region: "South England", company: "Aldi" },
-
-  { name: "Lidl - Perth", stock: 70, region: "Scotland", company: "Lidl" },
-  { name: "Lidl - Edinburgh", stock: 70, region: "Scotland", company: "Lidl" },
-  { name: "Lidl - Waterford", stock: 70, region: "Ireland", company: "Lidl" },
-  { name: "Lidl - Swansea", stock: 70, region: "Wales", company: "Lidl" },
-  { name: "Lidl - Southampton", stock: 70, region: "South England", company: "Lidl" },
-  { name: "Lidl - Canterbury", stock: 70, region: "South England", company: "Lidl" },
-  { name: "Lidl - Antrim", stock: 70, region: "Northern Ireland", company: "Lidl" },
-
-  { name: "Sainsbury's - Exeter", stock: 70, region: "South England", company: "Sainsbury's" },
-  { name: "Sainsbury's - Newport", stock: 70, region: "Wales", company: "Sainsbury's" },
-  { name: "Sainsbury's - Lisburn", stock: 70, region: "Northern Ireland", company: "Sainsbury's" },
-
-  { name: "IKEA - Croydon", stock: 70, region: "South England", company: "IKEA" },
-  { name: "IKEA - Douglas", stock: 70, region: "Isle of Man", company: "IKEA" },
-  { name: "IKEA - Dublin", stock: 70, region: "Ireland", company: "IKEA" },
-
-  { name: "Dreams - Exeter", stock: 70, region: "South England", company: "Dreams" },
-
-  { name: "Homebase - Exeter", stock: 70, region: "South England", company: "Homebase" },
-  { name: "Homebase - Plymouth", stock: 70, region: "South England", company: "Homebase" },
-
-  { name: "McDonald's - London", stock: 70, region: "South England", company: "McDonald's" },
-
-  { name: "Hawes Marketplace - Hawes", stock: 70, region: "North England", company: "Hawes Marketplace" }
-
+const incidentScenarios = [
+  {
+    title: "Ferry Cancellation",
+    description: "Irish freight crossing suspended due to severe weather.",
+    severity: "MAJOR",
+    points: 5,
+    stockLoss: 25
+  },
+  {
+    title: "Power Outage",
+    description: "Store refrigeration systems offline.",
+    severity: "CRITICAL",
+    points: 8,
+    stockLoss: 40
+  },
+  {
+    title: "Motorway Closure",
+    description: "Primary freight route blocked by incident.",
+    severity: "MINOR",
+    points: 3,
+    stockLoss: 15
+  },
+  {
+    title: "Port Congestion",
+    description: "Inbound containers delayed at port.",
+    severity: "MAJOR",
+    points: 5,
+    stockLoss: 30
+  }
 ];
 
 // ======================================================
 // HELPERS
 // ======================================================
 
+function makeId(prefix) {
+  return `${prefix}-${Math.floor(Math.random() * 999999)}`;
+}
+
 function getStatus(stock) {
-
   if (stock <= 30) return "🔴";
-
   if (stock <= 60) return "🟡";
-
   return "🟢";
-
 }
 
-function getJobType(emergency) {
-
-  if (emergency) {
-
-    return jobTypes.find(
-      j =>
-        j.name ===
-        "🚨 Emergency Restock"
-    );
-
-  }
-
-  return jobTypes[
-    Math.floor(
-      Math.random() *
-      jobTypes.length
-    )
-  ];
-
-}
-
-function getRdcRegion(rdc) {
-
-  if (
-    rdc.includes("Aberdeen") ||
-    rdc.includes("Ullapool") ||
-    rdc.includes("Oban") ||
-    rdc.includes("Fort William")
-  ) return "Scotland";
-
-  if (
-    rdc.includes("Newry") ||
-    rdc.includes("Ballymena")
-  ) return "Northern Ireland";
-
-  if (
-    rdc.includes("Wexford") ||
-    rdc.includes("Waterford") ||
-    rdc.includes("Sligo")
-  ) return "Ireland";
-
-  if (
-    rdc.includes("Swansea")
-  ) return "Wales";
-
+function getRegionFromRdc(rdc) {
+  if (rdc.includes("Aberdeen")) return "Scotland";
+  if (rdc.includes("Waterford")) return "Ireland";
+  if (rdc.includes("Swansea")) return "Wales";
   return "South England";
-
 }
 
-function groupStores() {
+function getWeightedStore(rdc) {
+  const region = getRegionFromRdc(rdc);
 
-  const grouped = {};
+  let stores = state.stores.filter(s => s.region === region);
+  if (!stores.length) stores = [...state.stores];
 
-  stores.forEach(store => {
+  stores.sort((a, b) => a.stock - b.stock);
 
-    if (!grouped[store.company]) {
+  const filtered = stores.filter(
+    s => s.company !== state.lastCompanyDispatched
+  );
 
-      grouped[store.company] = [];
+  const usable = filtered.length ? filtered : stores;
+  const top = usable.slice(0, 4);
 
-    }
+  const selected = top[Math.floor(Math.random() * top.length)];
 
-    grouped[store.company].push(store);
+  state.lastCompanyDispatched = selected.company;
 
+  return selected;
+}
+
+async function tempReply(interaction, content) {
+  await interaction.reply({
+    content,
+    ephemeral: true
   });
 
-  return grouped;
-
+  setTimeout(async () => {
+    try {
+      await interaction.deleteReply();
+    } catch {}
+  }, 3000);
 }
 
-function getSmartStore(rdc) {
-
-  // multi-stage incident escalation
-
-  if (
-    activeEmergency &&
-    Math.random() < 0.25
-  ) {
-
-    const nearbyStores =
-      stores.filter(
-        store =>
-          store.region ===
-          activeEmergency.store.region &&
-          store.name !==
-          activeEmergency.store.name
-      );
-
-    nearbyStores.forEach(store => {
-
-      store.stock = Math.max(
-        0,
-        store.stock - 10
-      );
-
-    });
-
-  }
-
-  if (activeEmergency) {
-
-    return activeEmergency.store;
-
-  }
-
-  const region =
-    getRdcRegion(rdc);
-
-  let regionalStores =
-    stores.filter(
-      store =>
-        store.region === region
-    );
-
-  if (
-    regionalStores.length === 0
-  ) {
-
-    regionalStores =
-      [...stores];
-
-  }
-
-  regionalStores.sort(
-    (a, b) =>
-      a.stock - b.stock
-  );
-
-  let filtered = regionalStores;
-
-  if (lastCompanyDispatched) {
-
-    const withoutLastCompany =
-      regionalStores.filter(
-        store =>
-          store.company !==
-          lastCompanyDispatched
-      );
-
-    if (
-      withoutLastCompany.length > 0
-    ) {
-
-      filtered =
-        withoutLastCompany;
-
-    }
-
-  }
-
-  const topChoices =
-    filtered.slice(0, 5);
-
-  const weightedChoices =
-    topChoices.sort(
-      (a, b) => {
-
-        const aContract =
-          contracts.find(
-            c =>
-              c.company ===
-              a.company
-          );
-
-        const bContract =
-          contracts.find(
-            c =>
-              c.company ===
-              b.company
-          );
-
-        const aWeight =
-          a.stock -
-          ((aContract?.priorityChance || 0) * 100);
-
-        const bWeight =
-          b.stock -
-          ((bContract?.priorityChance || 0) * 100);
-
-        return aWeight - bWeight;
-
-      }
-    );
-
-  const chosen =
-    weightedChoices[
-      Math.floor(
-        Math.random() *
-        weightedChoices.length
-      )
-    ];
-
-  lastCompanyDispatched =
-    chosen.company;
-
-  return chosen;
-
+function activeIncidentCount() {
+  return state.incidents.filter(i => i.status === "OPEN").length;
 }
 
 // ======================================================
-// ALERTS
-// ======================================================
-
-async function sendAlert(message) {
-
-  try {
-
-    const channel =
-      await client.channels.fetch(
-        ALERTS_CHANNEL_ID
-      );
-
-    if (!channel) return;
-
-    await channel.send(message);
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-}
-
-// ======================================================
-// EMERGENCY EVENTS
-// ======================================================
-
-async function triggerEmergencyEvent() {
-
-  if (activeEmergency) return;
-
-  const store =
-    stores[
-      Math.floor(
-        Math.random() *
-        stores.length
-      )
-    ];
-
-  const scenario =
-    alertScenarios[
-      Math.floor(
-        Math.random() *
-        alertScenarios.length
-      )
-    ];
-
-  const severity =
-    severityLevels[
-      Math.floor(
-        Math.random() *
-        severityLevels.length
-      )
-    ];
-
-  store.stock =
-    Math.max(
-      0,
-      store.stock -
-      severity.stockLoss
-    );
-
-  activeEmergency = {
-
-    event:
-      scenario.title,
-
-    store
-
-  };
-
-  await sendAlert(
-`🚨 SUPPLY CHAIN ALERT
-
-⚠ INCIDENT:
-${scenario.title}
-
-🏪 STORE:
-${store.name}
-
-🌍 REGION:
-${store.region}
-
-🚨 SEVERITY:
-${severity.name}
-
-📉 IMPACT:
-${scenario.impact}
-
-🚛 RESPONSE:
-${scenario.action}
-
-📦 CURRENT STOCK:
-${store.stock}%`
-  );
-
-}
-
-// ======================================================
-// STOCK BOARD
+// BOARDS
 // ======================================================
 
 async function updateStockBoard() {
+  const channel = await client.channels.fetch(STOCK_CHANNEL_ID);
+  if (!channel) return;
 
-  try {
+  const grouped = {};
 
-    const channel =
-      await client.channels.fetch(
-        STOCK_CHANNEL_ID
-      );
-
-    if (!channel) return;
-
-    const grouped =
-      groupStores();
-
-    let content =
-`╔════════════════════════╗
-      JC LOGISTICS
-        STOCK BOARD
-╚════════════════════════╝
-`;
-
-    if (activeEmergency) {
-
-      content +=
-`
-🚨 ACTIVE INCIDENT
-${activeEmergency.store.name}
-${activeEmergency.event}
-`;
-
-    }
-
-    Object.keys(grouped)
-      .forEach(company => {
-
-        content +=
-`\n📦 ${company}
-━━━━━━━━━━━━━━━━━━
-`;
-
-        grouped[company]
-          .sort(
-            (a, b) =>
-              a.stock - b.stock
-          )
-          .forEach(store => {
-
-            const short =
-              store.name.split(
-                " - "
-              )[1];
-
-            content +=
-`${getStatus(store.stock)} ${short} — ${store.stock}%
-`;
-
-          });
-
-      });
-
-    const messages =
-      await channel.messages.fetch({
-        limit: 10
-      });
-
-    const existing =
-      messages.find(
-        m =>
-          m.author.id ===
-          client.user.id
-      );
-
-    if (existing) {
-
-      await existing.edit(content);
-
-    } else {
-
-      await channel.send(content);
-
-    }
-
-  } catch (error) {
-
-    console.error(error);
-
+  for (const store of state.stores) {
+    if (!grouped[store.company]) grouped[store.company] = [];
+    grouped[store.company].push(store);
   }
 
+  let content = `╔════════════════════╗\n   JC LOGISTICS\n    STOCK BOARD\n╚════════════════════╝\n`;
+
+  const activeIncidents = state.incidents.filter(i => i.status === "OPEN");
+
+  if (activeIncidents.length) {
+    content += `\n🚨 ACTIVE INCIDENTS: ${activeIncidents.length}\n`;
+  }
+
+  for (const company of Object.keys(grouped)) {
+    content += `\n📦 ${company}\n━━━━━━━━━━━━━━━━\n`;
+
+    grouped[company]
+      .sort((a, b) => a.stock - b.stock)
+      .forEach(store => {
+        content += `${getStatus(store.stock)} ${store.name.split(" - ")[1]} — ${store.stock}%\n`;
+      });
+  }
+
+  const messages = await channel.messages.fetch({ limit: 10 });
+
+  const existing = messages.find(m => m.author.id === client.user.id);
+
+  if (existing) {
+    await existing.edit(content);
+  } else {
+    await channel.send(content);
+  }
 }
 
-// ======================================================
-// LEADERBOARD
-// ======================================================
-
 async function updateLeaderboard() {
+  const channel = await client.channels.fetch(LEADERBOARD_CHANNEL_ID);
+  if (!channel) return;
 
-  try {
+  const sorted = Object.entries(state.driverStats)
+    .sort((a, b) => b[1] - a[1]);
 
-    const channel =
-      await client.channels.fetch(
-        LEADERBOARD_CHANNEL_ID
-      );
+  let content = `🏆 JC LOGISTICS LEADERBOARD\n\n`;
 
-    if (!channel) return;
-
-    const sorted =
-      Object.entries(driverStats)
-      .sort(
-        (a, b) =>
-          b[1] - a[1]
-      );
-
-    let content =
-`🏆 JC LOGISTICS LEADERBOARD
-
-`;
-
-    if (sorted.length === 0) {
-
-      content +=
-`No deliveries completed.`;
-
-    } else {
-
-      sorted.forEach(
-        ([userId, count], index) => {
-
-          let medal = "▫️";
-
-          if (index === 0)
-            medal = "🥇";
-
-          if (index === 1)
-            medal = "🥈";
-
-          if (index === 2)
-            medal = "🥉";
-
-          content +=
-`${medal} <@${userId}> — ${count} points
-`;
-
-        }
-      );
-
-    }
-
-    const messages =
-      await channel.messages.fetch({
-        limit: 10
-      });
-
-    const existing =
-      messages.find(
-        m =>
-          m.author.id ===
-          client.user.id
-      );
-
-    if (existing) {
-
-      await existing.edit(content);
-
-    } else {
-
-      await channel.send(content);
-
-    }
-
-  } catch (error) {
-
-    console.error(error);
-
+  if (!sorted.length) {
+    content += "No deliveries completed.";
   }
 
+  sorted.forEach(([id, points], index) => {
+    const medals = ["🥇", "🥈", "🥉"];
+    content += `${medals[index] || "▫️"} <@${id}> — ${points} points\n`;
+  });
+
+  const messages = await channel.messages.fetch({ limit: 10 });
+  const existing = messages.find(m => m.author.id === client.user.id);
+
+  if (existing) {
+    await existing.edit(content);
+  } else {
+    await channel.send(content);
+  }
 }
 
 // ======================================================
@@ -911,89 +298,250 @@ async function updateLeaderboard() {
 // ======================================================
 
 async function createDispatchTerminal() {
-
-  const channel =
-    await client.channels.fetch(
-      JOB_CHANNEL_ID
-    );
-
+  const channel = await client.channels.fetch(JOB_CHANNEL_ID);
   if (!channel) return;
 
-  const menu =
-    new StringSelectMenuBuilder()
-      .setCustomId("rdc_select")
-      .setPlaceholder(
-        "Select RDC"
-      )
-      .addOptions(
-        rdcs.map(rdc => ({
-          label: rdc,
-          value: rdc
-        }))
-      );
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("rdc_select")
+    .setPlaceholder("Select RDC")
+    .addOptions(rdcs.map(rdc => ({
+      label: rdc,
+      value: rdc
+    })));
 
-  const row1 =
-    new ActionRowBuilder()
-      .addComponents(menu);
+  const row1 = new ActionRowBuilder().addComponents(menu);
 
-  const row2 =
-    new ActionRowBuilder()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId(
-            "generate_job"
-          )
-          .setLabel(
-            "Generate Dispatch"
-          )
-          .setStyle(
-            ButtonStyle.Primary
-          )
-      );
+  const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("generate_dispatch")
+      .setLabel("Generate Dispatch")
+      .setStyle(ButtonStyle.Primary)
+  );
 
-  const content =
-`┌──────────────────────────────┐
-     JC LOGISTICS TERMINAL
-└──────────────────────────────┘
+  const content = `JC LOGISTICS TERMINAL\n\nSelect RDC then generate dispatch.`;
 
-Select RDC below
-then generate dispatch.
-`;
-
-  const messages =
-    await channel.messages.fetch({
-      limit: 10
-    });
-
-  const existing =
-    messages.find(
-      m =>
-        m.author.id ===
-        client.user.id
-    );
+  const messages = await channel.messages.fetch({ limit: 10 });
+  const existing = messages.find(m => m.author.id === client.user.id);
 
   if (existing) {
-
     await existing.edit({
       content,
-      components: [
-        row1,
-        row2
-      ]
+      components: [row1, row2]
     });
-
   } else {
-
     await channel.send({
       content,
-      components: [
-        row1,
-        row2
-      ]
+      components: [row1, row2]
     });
+  }
+}
 
+// ======================================================
+// DISPATCHES
+// ======================================================
+
+async function createDispatch({
+  userId,
+  store,
+  jobType,
+  incidentId = null
+}) {
+  const dispatchId = makeId("DSP");
+
+  const dispatch = {
+    id: dispatchId,
+    userId,
+    storeId: store.id,
+    incidentId,
+    stockBoost: jobType.boost,
+    points: jobType.points,
+    type: jobType.name,
+    status: "ACTIVE",
+    createdAt: Date.now()
+  };
+
+  state.dispatches.push(dispatch);
+  state.activeDrivers[userId] = dispatchId;
+
+  saveState();
+
+  const channel = await client.channels.fetch(ACTIVE_JOBS_CHANNEL_ID);
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`complete_${dispatchId}`)
+      .setLabel("Complete Delivery")
+      .setStyle(ButtonStyle.Success)
+  );
+
+  await channel.send({
+    content:
+`🚚 ACTIVE DISPATCH\n\n👤 DRIVER:\n<@${userId}>\n\n🆔 DISPATCH:\n${dispatchId}\n\n📦 TYPE:\n${jobType.name}\n\n🏪 STORE:\n${store.name}\n\n⚠ PRIORITY:\n${jobType.priority}\n\n📈 STOCK IMPACT:\n+${jobType.boost}%\n\n🏆 REWARD:\n${jobType.points} points`,
+    components: [row]
+  });
+}
+
+async function completeDispatch(dispatchId, interaction) {
+  const dispatch = state.dispatches.find(d => d.id === dispatchId);
+
+  if (!dispatch || dispatch.status !== "ACTIVE") {
+    return tempReply(interaction, "❌ Dispatch unavailable.");
   }
 
+  dispatch.status = "COMPLETED";
+
+  const store = state.stores.find(s => s.id === dispatch.storeId);
+
+  store.stock = Math.min(100, store.stock + dispatch.stockBoost);
+
+  delete state.activeDrivers[dispatch.userId];
+
+  if (!state.driverStats[dispatch.userId]) {
+    state.driverStats[dispatch.userId] = 0;
+  }
+
+  state.driverStats[dispatch.userId] += dispatch.points;
+
+  if (dispatch.incidentId) {
+    const incident = state.incidents.find(i => i.id === dispatch.incidentId);
+
+    if (incident) {
+      incident.status = "RESOLVED";
+      incident.resolvedAt = Date.now();
+    }
+  }
+
+  saveState();
+
+  await updateStockBoard();
+  await updateLeaderboard();
+
+  const disabledRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`done_${dispatchId}`)
+      .setLabel("Delivery Complete")
+      .setDisabled(true)
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  await interaction.update({
+    content:
+`✅ DELIVERY COMPLETE\n\n🆔 ${dispatchId}\n🏪 ${store.name}\n📦 STOCK: ${store.stock}%`,
+    components: [disabledRow]
+  });
+}
+
+// ======================================================
+// INCIDENTS
+// ======================================================
+
+async function createIncident(manual = false) {
+  if (activeIncidentCount() >= MAX_ACTIVE_INCIDENTS) return;
+
+  const now = Date.now();
+
+  if (!manual && now - state.lastIncidentAt < INCIDENT_COOLDOWN_MS) {
+    return;
+  }
+
+  const scenario = incidentScenarios[
+    Math.floor(Math.random() * incidentScenarios.length)
+  ];
+
+  const store = [...state.stores]
+    .sort((a, b) => a.stock - b.stock)[0];
+
+  store.stock = Math.max(0, store.stock - scenario.stockLoss);
+
+  const incident = {
+    id: makeId("INC"),
+    title: scenario.title,
+    description: scenario.description,
+    severity: scenario.severity,
+    points: scenario.points,
+    stockLoss: scenario.stockLoss,
+    storeId: store.id,
+    status: "OPEN",
+    assignedTo: null,
+    createdAt: now,
+    expiresAt: now + INCIDENT_EXPIRY_MS
+  };
+
+  state.incidents.push(incident);
+  state.lastIncidentAt = now;
+
+  saveState();
+
+  await updateStockBoard();
+
+  const channel = await client.channels.fetch(ALERTS_CHANNEL_ID);
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`respond_${incident.id}`)
+      .setLabel("Respond To Incident")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await channel.send({
+    content:
+`🚨 SUPPLY CHAIN INCIDENT\n\n🆔 ${incident.id}\n\n⚠ INCIDENT:\n${scenario.title}\n\n🏪 STORE:\n${store.name}\n\n📉 IMPACT:\n${scenario.description}\n\n🔥 SEVERITY:\n${scenario.severity}\n\n📦 STOCK NOW:\n${store.stock}%\n\n🏆 REWARD:\n${scenario.points} points`,
+    components: [row]
+  });
+}
+
+function cleanupIncidents() {
+  const now = Date.now();
+
+  for (const incident of state.incidents) {
+    if (
+      incident.status === "OPEN" &&
+      now > incident.expiresAt
+    ) {
+      incident.status = "EXPIRED";
+    }
+  }
+
+  saveState();
+}
+
+// ======================================================
+// STOCK DRAIN
+// ======================================================
+
+setInterval(async () => {
+  for (const store of state.stores) {
+    const drain = Math.floor(Math.random() * 8) + 3;
+    store.stock = Math.max(0, store.stock - drain);
+  }
+
+  if (Math.random() < 0.15) {
+    await createIncident(false);
+  }
+
+  cleanupIncidents();
+  saveState();
+  await updateStockBoard();
+}, 1000 * 60 * 30);
+
+// ======================================================
+// COMMANDS
+// ======================================================
+
+async function registerCommands() {
+  const commands = [
+    new SlashCommandBuilder()
+      .setName("alert")
+      .setDescription("Trigger a supply chain incident")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+  ].map(c => c.toJSON());
+
+  const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+
+  await rest.put(
+    Routes.applicationCommands(process.env.CLIENT_ID),
+    { body: commands }
+  );
 }
 
 // ======================================================
@@ -1001,477 +549,146 @@ then generate dispatch.
 // ======================================================
 
 client.once("ready", async () => {
+  console.log(`Online: ${client.user.tag}`);
 
-  console.log(
-    `Bot online: ${client.user.tag}`
-  );
-
-  await client.application.commands.create(
-    new SlashCommandBuilder()
-      .setName("alert")
-      .setDescription(
-        "Trigger a supply chain incident"
-      )
-      .setDefaultMemberPermissions(
-        PermissionFlagsBits.Administrator)
-      .toJSON()
-  );
-
+  await registerCommands();
   await createDispatchTerminal();
-
   await updateStockBoard();
-
   await updateLeaderboard();
-
 });
-
-// ======================================================
-// STOCK DRAIN
-// ======================================================
-
-setInterval(async () => {
-
-  stores.forEach(store => {
-
-    let drain =
-      Math.floor(
-        Math.random() * 10
-      ) + 5;
-
-    if (
-      store.name.includes(
-        "London"
-      )
-    ) {
-
-      drain += 8;
-
-    }
-
-    store.stock =
-      Math.max(
-        0,
-        store.stock - drain
-      );
-
-  });
-
-  if (Math.random() < 0.3) {
-
-    await triggerEmergencyEvent();
-
-  }
-
-  await updateStockBoard();
-
-}, 86400000);
 
 // ======================================================
 // INTERACTIONS
 // ======================================================
 
-client.on(
-  "interactionCreate",
-  async interaction => {
+client.on("interactionCreate", async interaction => {
+  try {
 
-    try {
+    // ================================================
+    // COMMANDS
+    // ================================================
 
-      // ================================================
-      // ALERT COMMAND
-      // ================================================
-
-      if (
-        interaction.isChatInputCommand()
-      ) {
-
-        if (
-          interaction.commandName ===
-          "alert"
-        ) {
-
-          await triggerEmergencyEvent();
-
-          return await tempReply(
-            interaction,
-            "🚨 Alert triggered."
-          );
-
-        }
-
+    if (interaction.isChatInputCommand()) {
+      if (interaction.commandName === "alert") {
+        await createIncident(true);
+        return tempReply(interaction, "🚨 Incident triggered.");
       }
-
-      // ================================================
-      // SELECT MENU
-      // ================================================
-
-      if (
-        interaction.isStringSelectMenu()
-      ) {
-
-        if (
-          interaction.customId ===
-          "rdc_select"
-        ) {
-
-          selectedRdc[
-            interaction.user.id
-          ] =
-            interaction.values[0];
-
-          return await tempReply(
-            interaction,
-`✅ RDC Selected
-
-${interaction.values[0]}`
-          );
-
-        }
-
-      }
-
-      // ================================================
-      // BUTTONS
-      // ================================================
-
-      if (
-        interaction.isButton()
-      ) {
-
-        // ============================================
-        // GENERATE JOB
-        // ============================================
-
-        if (
-          interaction.customId ===
-          "generate_job"
-        ) {
-
-          if (
-            activeDrivers[
-              interaction.user.id
-            ]
-          ) {
-
-            return await tempReply(
-              interaction,
-              "❌ You already have an active job."
-            );
-
-          }
-
-          const rdc =
-            selectedRdc[
-              interaction.user.id
-            ];
-
-          if (!rdc) {
-
-            return await tempReply(
-              interaction,
-              "❌ Select an RDC first."
-            );
-
-          }
-
-          const store =
-            getSmartStore(rdc);
-
-          const emergency =
-            activeEmergency &&
-            store.name ===
-            activeEmergency.store.name;
-
-          const jobType =
-            getJobType(
-              emergency
-            );
-
-          const jobId =
-            "J-" +
-            Math.floor(
-              Math.random() *
-              100000
-            );
-
-          activeDrivers[
-            interaction.user.id
-          ] = true;
-
-          activeJobs.push({
-
-            id: jobId,
-
-            user:
-              interaction.user.id,
-
-            store:
-              store.name,
-
-            stockBoost:
-              jobType.stockBoost,
-
-            points:
-              jobType.points +
-              (
-                contracts.find(
-                  c =>
-                    c.company ===
-                    store.company
-                )?.bonusPoints || 0
-              )
-
-          });
-
-          saveData(
-            ACTIVE_DRIVERS_FILE,
-            activeDrivers
-          );
-
-          saveData(
-            ACTIVE_JOBS_FILE,
-            activeJobs
-          );
-
-          const row =
-            new ActionRowBuilder()
-              .addComponents(
-                new ButtonBuilder()
-                  .setCustomId(
-                    `complete_${jobId}`
-                  )
-                  .setLabel(
-                    "Complete Delivery"
-                  )
-                  .setStyle(
-                    ButtonStyle.Success
-                  )
-              );
-
-          const activeChannel =
-            await client.channels.fetch(
-              ACTIVE_JOBS_CHANNEL_ID
-            );
-
-          const content =
-`┌──────────────────────────────┐
-      ACTIVE DISPATCH
-└──────────────────────────────┘
-
-👤 DRIVER:
-<@${interaction.user.id}>
-
-🚚 JOB ID:
-${jobId}
-
-📦 JOB TYPE:
-${jobType.name}
-
-🏭 RDC:
-${rdc}
-
-🌍 REGION:
-${store.region}
-
-🏪 STORE:
-${store.name}
-
-⚠ PRIORITY:
-${jobType.priority}
-
-📈 STOCK IMPACT:
-+${jobType.stockBoost}%
-
-🏆 REWARD:
-${jobType.points} points
-
-📋 STATUS:
-IN TRANSIT
-`;
-
-          await activeChannel.send({
-            content,
-            components: [row]
-          });
-
-          await tempReply(
-            interaction,
-            "✅ Dispatch generated."
-          );
-
-        }
-
-        // ============================================
-        // COMPLETE DELIVERY
-        // ============================================
-
-        if (
-          interaction.customId.startsWith(
-            "complete_"
-          )
-        ) {
-
-          const jobId =
-            interaction.customId.split(
-              "_"
-            )[1];
-
-          const job =
-            activeJobs.find(
-              j =>
-                j.id === jobId
-            );
-
-          if (!job) {
-
-            return await tempReply(
-              interaction,
-              "❌ Job not found."
-            );
-
-          }
-
-          const store =
-            stores.find(
-              s =>
-                s.name ===
-                job.store
-            );
-
-          store.stock =
-            Math.min(
-              100,
-              store.stock +
-              job.stockBoost
-            );
-
-          delete activeDrivers[
-            job.user
-          ];
-
-          activeJobs =
-            activeJobs.filter(
-              j =>
-                j.id !== jobId
-            );
-
-          if (
-            !driverStats[
-              job.user
-            ]
-          ) {
-
-            driverStats[
-              job.user
-            ] = 0;
-
-          }
-
-          driverStats[
-            job.user
-          ] +=
-            job.points;
-
-          saveData(
-            DRIVER_STATS_FILE,
-            driverStats
-          );
-
-          saveData(
-            ACTIVE_DRIVERS_FILE,
-            activeDrivers
-          );
-
-          saveData(
-            ACTIVE_JOBS_FILE,
-            activeJobs
-          );
-
-          if (
-            activeEmergency &&
-            activeEmergency.store.name ===
-            store.name
-          ) {
-
-            await sendAlert(
-`✅ INCIDENT RESOLVED
-
-🏪 STORE:
-${store.name}
-
-📦 STOCK:
-${store.stock}%
-
-Priority delivery completed.`
-            );
-
-            activeEmergency =
-              null;
-
-          }
-
-          await updateStockBoard();
-
-          await updateLeaderboard();
-
-          const disabledRow =
-            new ActionRowBuilder()
-              .addComponents(
-                new ButtonBuilder()
-                  .setCustomId(
-                    `complete_${jobId}`
-                  )
-                  .setLabel(
-                    "Delivery Complete"
-                  )
-                  .setStyle(
-                    ButtonStyle.Secondary
-                  )
-                  .setDisabled(true)
-              );
-
-          await interaction.update({
-
-            content:
-`✅ DELIVERY COMPLETE
-
-🚚 JOB ID:
-${jobId}
-
-🏪 STORE:
-${store.name}
-
-📦 UPDATED STOCK:
-${store.stock}%
-
-🏆 DRIVER POINTS:
-${driverStats[job.user]}`,
-
-            components: [
-              disabledRow
-            ]
-
-          });
-
-        }
-
-      }
-
-    } catch (error) {
-
-      console.error(
-        "INTERACTION ERROR:",
-        error
-      );
-
     }
 
+    // ================================================
+    // RDC SELECT
+    // ================================================
+
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === "rdc_select") {
+        state.selectedRdc[interaction.user.id] = interaction.values[0];
+        saveState();
+
+        return tempReply(
+          interaction,
+          `✅ RDC Selected\n\n${interaction.values[0]}`
+        );
+      }
+    }
+
+    // ================================================
+    // BUTTONS
+    // ================================================
+
+    if (interaction.isButton()) {
+
+      // ============================================
+      // NORMAL DISPATCH
+      // ============================================
+
+      if (interaction.customId === "generate_dispatch") {
+
+        if (state.activeDrivers[interaction.user.id]) {
+          return tempReply(interaction, "❌ You already have an active dispatch.");
+        }
+
+        const rdc = state.selectedRdc[interaction.user.id];
+
+        if (!rdc) {
+          return tempReply(interaction, "❌ Select an RDC first.");
+        }
+
+        const store = getWeightedStore(rdc);
+
+        const jobType = jobTypes[
+          Math.floor(Math.random() * jobTypes.length)
+        ];
+
+        await createDispatch({
+          userId: interaction.user.id,
+          store,
+          jobType
+        });
+
+        return tempReply(interaction, "✅ Dispatch generated.");
+      }
+
+      // ============================================
+      // INCIDENT RESPONSE
+      // ============================================
+
+      if (interaction.customId.startsWith("respond_")) {
+        const incidentId = interaction.customId.replace("respond_", "");
+
+        const incident = state.incidents.find(i => i.id === incidentId);
+
+        if (!incident || incident.status !== "OPEN") {
+          return tempReply(interaction, "❌ Incident unavailable.");
+        }
+
+        if (state.activeDrivers[interaction.user.id]) {
+          return tempReply(interaction, "❌ Complete your active dispatch first.");
+        }
+
+        // atomic claim lock
+        if (incident.assignedTo) {
+          return tempReply(interaction, "❌ Incident already assigned.");
+        }
+
+        incident.assignedTo = interaction.user.id;
+        incident.status = "ASSIGNED";
+
+        const store = state.stores.find(s => s.id === incident.storeId);
+
+        await createDispatch({
+          userId: interaction.user.id,
+          store,
+          incidentId,
+          jobType: {
+            name: `🚨 ${incident.title}`,
+            boost: incident.stockLoss + 10,
+            points: incident.points,
+            priority: incident.severity
+          }
+        });
+
+        saveState();
+
+        return tempReply(interaction, "🚨 Incident response assigned.");
+      }
+
+      // ============================================
+      // COMPLETE DISPATCH
+      // ============================================
+
+      if (interaction.customId.startsWith("complete_")) {
+        const dispatchId = interaction.customId.replace("complete_", "");
+        return completeDispatch(dispatchId, interaction);
+      }
+    }
+
+  } catch (error) {
+    console.error(error);
   }
-);
+});
 
 // ======================================================
 // LOGIN
 // ======================================================
 
-client.login(
-  process.env.TOKEN
-);
+client.login(process.env.TOKEN);
