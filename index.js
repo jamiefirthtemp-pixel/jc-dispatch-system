@@ -21,6 +21,7 @@ const stores = [
 ];
 
 const activeJobs = {};
+const driverStats = {};
 
 function getLowestStockStore() {
 return [...stores].sort((a, b) => a.stock - b.stock)[0];
@@ -74,7 +75,11 @@ new SlashCommandBuilder()
 
 new SlashCommandBuilder()
   .setName('deplete')
-  .setDescription('Deplete stock')
+  .setDescription('Deplete stock'),
+
+new SlashCommandBuilder()
+  .setName('stats')
+  .setDescription('View your driver stats')
 
 ].map(command => command.toJSON());
 
@@ -168,6 +173,24 @@ if (interaction.isChatInputCommand()) {
 
   }
 
+  if (interaction.commandName === 'stats') {
+
+    const stats = driverStats[interaction.user.id];
+
+    const completed = stats ? stats.completedJobs : 0;
+
+    await interaction.reply({
+      content:
+        '📊 DRIVER STATS\n\n' +
+        'Driver: ' + interaction.user.username + '\n' +
+        'Completed Jobs: ' + completed,
+      ephemeral: true
+    });
+
+    return;
+
+  }
+
 }
 
 if (interaction.isButton()) {
@@ -188,6 +211,16 @@ if (interaction.isButton()) {
     }
 
     increaseStoreStock(job.store);
+
+    if (!driverStats[interaction.user.id]) {
+
+      driverStats[interaction.user.id] = {
+        completedJobs: 0
+      };
+
+    }
+
+    driverStats[interaction.user.id].completedJobs += 1;
 
     delete activeJobs[interaction.user.id];
 
