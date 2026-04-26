@@ -21,8 +21,6 @@ const client = new Client({
 // CONFIG
 // ======================================================
 
-const CLIENT_ID = "1497676061083697313";
-
 const JOB_CHANNEL_ID = "1497716778791342120";
 
 const STOCK_CHANNEL_ID = "1497749476234760342";
@@ -35,27 +33,19 @@ const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
 
 const rdcs = [
 
-  // DHL
-
   "DHL - Ullapool",
   "DHL - Oban",
   "DHL - Aberdeen",
   "DHL - Newport",
   "DHL - Portsmouth",
 
-  // DSV
-
   "DSV - Newry",
   "DSV - Wexford",
   "DSV - Waterford",
   "DSV - Newport",
 
-  // XPO
-
   "XPO Logistics - London",
   "XPO Logistics - Dover",
-
-  // STOBART / CULINA
 
   "Stobart/Culina - Sligo",
   "Stobart/Culina - Ballymena",
@@ -163,10 +153,37 @@ function getStatus(stock) {
 }
 
 // ======================================================
-// DAILY STOCK DEPLETION
+// GROUP STORES
 // ======================================================
 
-setInterval(() => {
+function groupStores() {
+
+  const grouped = {};
+
+  stores.forEach(store => {
+
+    const company =
+      store.name.split(" - ")[0];
+
+    if (!grouped[company]) {
+
+      grouped[company] = [];
+
+    }
+
+    grouped[company].push(store);
+
+  });
+
+  return grouped;
+
+}
+
+// ======================================================
+// STOCK DEPLETION
+// ======================================================
+
+setInterval(async () => {
 
   stores.forEach(store => {
 
@@ -177,13 +194,23 @@ setInterval(() => {
 
   });
 
-  updateStockBoard();
+  await updateStockBoard();
 
   console.log(
     "14% stock depletion complete."
   );
 
 }, 86400000);
+
+// ======================================================
+// AUTO STOCK UPDATE EVERY 5 MINS
+// ======================================================
+
+setInterval(async () => {
+
+  await updateStockBoard();
+
+}, 300000);
 
 // ======================================================
 // STOCK BOARD
@@ -200,38 +227,48 @@ async function updateStockBoard() {
 
     if (!channel) return;
 
-    const sorted =
-      [...stores].sort(
-        (a, b) => a.stock - b.stock
-      );
+    const grouped =
+      groupStores();
 
     let content =
 `📦 JC LOGISTICS STOCK BOARD
 
 `;
 
-    sorted.forEach(store => {
+    Object.keys(grouped).forEach(company => {
+
+      content += `📦 ${company}\n\n`;
+
+      grouped[company].forEach(store => {
+
+        content +=
+`${getStatus(store.stock)} ${store.name}\n`;
+
+        content +=
+`Stock: ${store.stock}%\n\n`;
+
+      });
 
       content +=
-`${getStatus(store.stock)} | ${store.name} | ${store.stock}%\n`;
+`━━━━━━━━━━━━━━\n\n`;
 
     });
 
     const messages =
       await channel.messages.fetch({
-        limit: 1
+        limit: 10
       });
 
-    const lastMessage =
-      messages.first();
+    const existing =
+      messages.find(
+        m =>
+          m.author.id ===
+          client.user.id
+      );
 
-    if (
-      lastMessage &&
-      lastMessage.author.id ===
-      client.user.id
-    ) {
+    if (existing) {
 
-      await lastMessage.edit(content);
+      await existing.edit(content);
 
     } else {
 
@@ -310,6 +347,15 @@ async function createDispatchTerminal() {
 
         );
 
+    const content =
+`┌──────────────────────────────┐
+     JC LOGISTICS TERMINAL
+└──────────────────────────────┘
+
+Select RDC below
+then generate dispatch.
+`;
+
     const messages =
       await channel.messages.fetch({
         limit: 10
@@ -321,15 +367,6 @@ async function createDispatchTerminal() {
           m.author.id ===
           client.user.id
       );
-
-    const content =
-`┌──────────────────────────────┐
-     JC LOGISTICS TERMINAL
-└──────────────────────────────┘
-
-Select RDC below
-then generate dispatch.
-`;
 
     if (existing) {
 
@@ -437,9 +474,9 @@ ${interaction.values[0]}`,
         interaction.isButton()
       ) {
 
-        // ==============================================
+        // ==================================================
         // GENERATE JOB
-        // ==============================================
+        // ==================================================
 
         if (
           interaction.customId ===
@@ -480,8 +517,6 @@ ${interaction.values[0]}`,
             });
 
           }
-
-          // LOWEST STOCK STORE
 
           const sorted =
             [...stores].sort(
@@ -536,10 +571,18 @@ ${interaction.values[0]}`,
 
               );
 
-          const content =
+          const activeChannel =
+            await client.channels.fetch(
+              ACTIVE_JOBS_CHANNEL_ID
+            );
+
+          const activeContent =
 `┌──────────────────────────────┐
-     JC LOGISTICS DISPATCH
+      ACTIVE DISPATCH
 └──────────────────────────────┘
+
+👤 DRIVER:
+<@${interaction.user.id}>
 
 🚚 JOB ID:
 ${jobId}
@@ -560,43 +603,33 @@ ${store.stock}%
 IN TRANSIT
 `;
 
-          await interaction.reply({
-
-            content,
-
-            components: [row]
-
-          });
-
-          // ACTIVE JOB CHANNEL
-
-          const activeChannel =
-            await client.channels.fetch(
-              ACTIVE_JOBS_CHANNEL_ID
-            );
-
           if (activeChannel) {
 
-            await activeChannel.send(
-`🚚 ACTIVE JOB
+            await activeChannel.send({
 
-Driver:
-<@${interaction.user.id}>
+              content:
+                activeContent,
 
-JOB ID:
-${jobId}
+              components: [row]
 
-STORE:
-${store.name}`
-            );
+            });
 
           }
 
+          await interaction.reply({
+
+            content:
+              "✅ Dispatch generated and sent to Active Jobs.",
+
+            ephemeral: true
+
+          });
+
         }
 
-        // ==============================================
+        // ==================================================
         // COMPLETE DELIVERY
-        // ==============================================
+        // ==================================================
 
         if (
           interaction.customId.startsWith(
@@ -634,8 +667,6 @@ ${store.name}`
                 job.store
             );
 
-          // RESTOCK
-
           store.stock =
             Math.min(
               100,
@@ -643,33 +674,62 @@ ${store.name}`
             );
 
           delete activeDrivers[
-            interaction.user.id
+            job.user
           ];
-
-          // DRIVER STATS
 
           if (
             !driverStats[
-              interaction.user.id
+              job.user
             ]
           ) {
 
             driverStats[
-              interaction.user.id
+              job.user
             ] = 0;
 
           }
 
           driverStats[
-            interaction.user.id
+            job.user
           ]++;
 
           await updateStockBoard();
 
+          const disabledRow =
+            new ActionRowBuilder()
+
+              .addComponents(
+
+                new ButtonBuilder()
+
+                  .setCustomId(
+                    `complete_${jobId}`
+                  )
+
+                  .setLabel(
+                    "Delivery Complete"
+                  )
+
+                  .setStyle(
+                    ButtonStyle.Secondary
+                  )
+
+                  .setDisabled(true)
+
+              );
+
           await interaction.update({
 
             content:
-`✅ DELIVERY COMPLETED
+`┌──────────────────────────────┐
+      DELIVERY COMPLETE
+└──────────────────────────────┘
+
+👤 DRIVER:
+<@${job.user}>
+
+🚚 JOB ID:
+${jobId}
 
 🏪 STORE:
 ${store.name}
@@ -677,13 +737,16 @@ ${store.name}
 📦 UPDATED STOCK:
 ${store.stock}%
 
-📈 DRIVER JOBS COMPLETED:
-${driverStats[
-  interaction.user.id
-]}
+📋 STATUS:
+COMPLETE
+
+📈 DRIVER COMPLETIONS:
+${driverStats[job.user]}
 `,
 
-            components: []
+            components: [
+              disabledRow
+            ]
 
           });
 
