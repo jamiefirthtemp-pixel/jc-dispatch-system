@@ -103,8 +103,6 @@ const stores = [
 const activeJobs = {};
 const driverStats = {};
 
-/* FUNCTIONS */
-
 function getTraffic(stock) {
 
 if (stock <= 30) return '🔴 LOW';
@@ -132,12 +130,8 @@ Math.floor(Math.random() * 100000);
 
 function getLowestStockStore() {
 
-const sorted =
-[...stores].sort(
-(a, b) => a.stock - b.stock
-);
-
-return sorted[0];
+return [...stores]
+.sort((a, b) => a.stock - b.stock)[0];
 
 }
 
@@ -212,33 +206,11 @@ embed.addFields({
 
 });
 
-const messages =
-await channel.messages.fetch({
-limit: 10
-});
-
-const existing =
-messages.find(
-m => m.author.id === client.user.id
-);
-
-if (existing) {
-
-await existing.edit({
-  embeds: [embed]
-});
-
-} else {
-
 await channel.send({
-  embeds: [embed]
+embeds: [embed]
 });
 
 }
-
-}
-
-/* AUTO STOCK DEPLETION */
 
 setInterval(() => {
 
@@ -247,8 +219,6 @@ decreaseStock();
 updateStockBoard();
 
 }, 300000);
-
-/* READY */
 
 client.once(
 Events.ClientReady,
@@ -264,11 +234,6 @@ const commands = [
   {
     name: 'job',
     description: 'Generate delivery job'
-  },
-
-  {
-    name: 'stats',
-    description: 'View driver stats'
   }
 
 ];
@@ -289,17 +254,11 @@ await rest.put(
 
 );
 
-console.log(
-  'Commands registered'
-);
-
 updateStockBoard();
 
 }
 
 );
-
-/* INTERACTIONS */
 
 client.on(
 Events.InteractionCreate,
@@ -307,13 +266,9 @@ async (interaction) => {
 
 try {
 
-  /* COMMANDS */
-
   if (
     interaction.isChatInputCommand()
   ) {
-
-    /* JOB */
 
     if (
       interaction.commandName ===
@@ -384,71 +339,7 @@ try {
 
     }
 
-    /* STATS */
-
-    if (
-      interaction.commandName ===
-      'stats'
-    ) {
-
-      const stats =
-        driverStats[
-          interaction.user.id
-        ];
-
-      const completed =
-        stats
-          ? stats.completedJobs
-          : 0;
-
-      const embed =
-        new EmbedBuilder()
-
-          .setTitle(
-            '📊 DRIVER PERFORMANCE'
-          )
-
-          .setColor(0x00cc66)
-
-          .addFields(
-
-            {
-
-              name:
-                '👤 DRIVER',
-
-              value:
-                interaction.user.username
-
-            },
-
-            {
-
-              name:
-                '✅ COMPLETED JOBS',
-
-              value:
-                String(completed)
-
-            }
-
-          );
-
-      await interaction.reply({
-
-        embeds: [embed],
-
-        ephemeral: true
-
-      });
-
-      return;
-
-    }
-
   }
-
-  /* RDC SELECT */
 
   if (
     interaction.isStringSelectMenu()
@@ -482,7 +373,10 @@ try {
           store.name,
 
         storeLocation:
-          store.location
+          store.location,
+
+        rdc:
+          rdc.location
 
       };
 
@@ -502,59 +396,43 @@ try {
           .addFields(
 
             {
-
-              name:
-                '📦 JOB ID',
-
-              value:
-                jobId,
-
+              name: '📦 JOB ID',
+              value: jobId,
               inline: true
-
             },
 
             {
-
-              name:
-                '🏭 PICKUP RDC',
-
+              name: '🏭 RDC',
               value:
                 rdc.name +
-                '\n' +
+                ' - ' +
                 rdc.location,
-
               inline: true
-
             },
 
             {
-
-              name:
-                '🏪 DELIVERY STORE',
-
+              name: '🏪 STORE',
               value:
                 store.name +
-                '\n' +
+                ' - ' +
                 store.location
-
             },
 
             {
-
-              name:
-                '📊 STOCK STATUS',
-
+              name: '📊 PRIORITY',
               value:
-
                 getTraffic(
                   store.stock
                 ) +
-
-                '\n' +
-
+                ' (' +
                 store.stock +
-                '%'
+                '%)'
+            },
 
+            {
+              name: '👤 DRIVER',
+              value:
+                interaction.user.username
             }
 
           )
@@ -562,7 +440,7 @@ try {
           .setFooter({
 
             text:
-              'JC Logistics Freight Operations'
+              'JC Logistics Dispatch Network'
 
           })
 
@@ -591,8 +469,6 @@ try {
 
       await interaction.update({
 
-        content: '',
-
         embeds: [embed],
 
         components: [row]
@@ -606,26 +482,56 @@ try {
 
       if (dispatch) {
 
+        const activeEmbed =
+          new EmbedBuilder()
+
+            .setTitle(
+              '🚚 ACTIVE DELIVERY'
+            )
+
+            .setColor(0x0099ff)
+
+            .addFields(
+
+              {
+                name: '👤 DRIVER',
+                value:
+                  interaction.user.username,
+                inline: true
+              },
+
+              {
+                name: '📦 JOB ID',
+                value: jobId,
+                inline: true
+              },
+
+              {
+                name: '🏭 RDC',
+                value:
+                  rdc.location
+              },
+
+              {
+                name: '🏪 DELIVERY',
+                value:
+                  store.name +
+                  ' - ' +
+                  store.location
+              },
+
+              {
+                name: '📊 STATUS',
+                value:
+                  'IN TRANSIT'
+              }
+
+            )
+
+            .setTimestamp();
+
         await dispatch.send({
-
-          content:
-
-            '🚛 ACTIVE DELIVERY\n\n' +
-
-            interaction.user.username +
-
-            '\nRDC: ' +
-
-            rdc.location +
-
-            '\nSTORE: ' +
-
-            store.name +
-
-            ' - ' +
-
-            store.location
-
+          embeds: [activeEmbed]
         });
 
       }
@@ -635,8 +541,6 @@ try {
     }
 
   }
-
-  /* BUTTONS */
 
   if (interaction.isButton()) {
 
@@ -675,26 +579,6 @@ try {
 
       updateStockBoard();
 
-      if (
-        !driverStats[
-          interaction.user.id
-        ]
-      ) {
-
-        driverStats[
-          interaction.user.id
-        ] = {
-
-          completedJobs: 0
-
-        };
-
-      }
-
-      driverStats[
-        interaction.user.id
-      ].completedJobs += 1;
-
       delete activeJobs[
         interaction.user.id
       ];
@@ -707,6 +591,61 @@ try {
         ephemeral: true
 
       });
+
+      const dispatch =
+        await client.channels.fetch(
+          DISPATCH_CHANNEL_ID
+        );
+
+      if (dispatch) {
+
+        const completedEmbed =
+          new EmbedBuilder()
+
+            .setTitle(
+              '✅ DELIVERY COMPLETED'
+            )
+
+            .setColor(0x00cc66)
+
+            .addFields(
+
+              {
+                name: '👤 DRIVER',
+                value:
+                  interaction.user.username,
+                inline: true
+              },
+
+              {
+                name: '🏪 STORE',
+                value:
+                  job.storeName +
+                  ' - ' +
+                  job.storeLocation
+              },
+
+              {
+                name: '🏭 RDC',
+                value:
+                  job.rdc
+              },
+
+              {
+                name: '📊 RESULT',
+                value:
+                  'Store stock replenished'
+              }
+
+            )
+
+            .setTimestamp();
+
+        await dispatch.send({
+          embeds: [completedEmbed]
+        });
+
+      }
 
       return;
 
