@@ -403,7 +403,7 @@ ${jobType.points} Points
 
 📌 STATUS: IN TRANSIT
 
-╚═════════════════════════╝`,\n\n👤 DRIVER:\n<@${userId}>\n\n🆔 DISPATCH:\n${dispatchId}\n\n📦 TYPE:\n${jobType.name}\n\n🏪 STORE:\n${store.name}\n\n⚠ PRIORITY:\n${jobType.priority}\n\n📈 STOCK IMPACT:\n+${jobType.boost}%\n\n🏆 REWARD:\n${jobType.points} points`,
+╚═════════════════════════╝`,
     components: [row]
   });
 
@@ -799,3 +799,9 @@ client.on("interactionCreate", async interaction => {
     console.error(error);
   }
 });
+
+// ======================================================
+// LOGIN
+// ======================================================
+
+client.login(process.env.TOKEN);
