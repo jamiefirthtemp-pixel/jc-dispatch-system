@@ -47,7 +47,7 @@ const ACTIVE_JOBS_FILE =
   "./activeJobs.json";
 
 // ======================================================
-// TEMP EPHEMERAL REPLY
+// TEMP REPLY
 // ======================================================
 
 async function tempReply(
@@ -69,7 +69,7 @@ async function tempReply(
 
       await interaction.deleteReply();
 
-    } catch (err) {}
+    } catch {}
 
   }, time);
 
@@ -79,7 +79,10 @@ async function tempReply(
 // SAVE / LOAD
 // ======================================================
 
-function loadData(file, fallback) {
+function loadData(
+  file,
+  fallback
+) {
 
   try {
 
@@ -103,7 +106,10 @@ function loadData(file, fallback) {
 
 }
 
-function saveData(file, data) {
+function saveData(
+  file,
+  data
+) {
 
   fs.writeFileSync(
 
@@ -120,7 +126,7 @@ function saveData(file, data) {
 }
 
 // ======================================================
-// LOAD SAVED DATA
+// LOAD DATA
 // ======================================================
 
 let selectedRdc = {};
@@ -180,50 +186,186 @@ const rdcs = [
 
 const stores = [
 
-  { name: "Tesco - Dublin", stock: 70 },
-  { name: "Tesco - Belfast", stock: 70 },
-  { name: "Tesco - Antrim", stock: 70 },
-  { name: "Tesco - Dumfries", stock: 70 },
-  { name: "Tesco - Holyhead", stock: 70 },
-  { name: "Tesco - Porthmadog", stock: 70 },
-  { name: "Tesco - Aberystwyth", stock: 70 },
-  { name: "Tesco - Folkestone", stock: 70 },
-  { name: "Tesco - London", stock: 70 },
-  { name: "Tesco - Chelmsford", stock: 70 },
-  { name: "Tesco - Norwich", stock: 70 },
-  { name: "Tesco - Ullapool", stock: 70 },
-  { name: "Tesco - Stornoway", stock: 70 },
+  // TESCO
 
-  { name: "Aldi - Porthmadog", stock: 70 },
-  { name: "Aldi - Waterford", stock: 70 },
-  { name: "Aldi - Sheffield", stock: 70 },
-  { name: "Aldi - Newcastle", stock: 70 },
-  { name: "Aldi - London", stock: 70 },
+  {
+    name: "Tesco - Dublin",
+    stock: 70,
+    region: "Ireland",
+    company: "Tesco"
+  },
 
-  { name: "Lidl - Perth", stock: 70 },
-  { name: "Lidl - Edinburgh", stock: 70 },
-  { name: "Lidl - Waterford", stock: 70 },
-  { name: "Lidl - Swansea", stock: 70 },
-  { name: "Lidl - Southampton", stock: 70 },
-  { name: "Lidl - Canterbury", stock: 70 },
-  { name: "Lidl - Antrim", stock: 70 },
+  {
+    name: "Tesco - Belfast",
+    stock: 70,
+    region: "Northern Ireland",
+    company: "Tesco"
+  },
 
-  { name: "Sainsbury's - Exeter", stock: 70 },
-  { name: "Sainsbury's - Newport", stock: 70 },
-  { name: "Sainsbury's - Lisburn", stock: 70 },
+  {
+    name: "Tesco - Antrim",
+    stock: 70,
+    region: "Northern Ireland",
+    company: "Tesco"
+  },
 
-  { name: "IKEA - Croydon", stock: 70 },
-  { name: "IKEA - Douglas", stock: 70 },
-  { name: "IKEA - Dublin", stock: 70 },
+  {
+    name: "Tesco - Dumfries",
+    stock: 70,
+    region: "Scotland",
+    company: "Tesco"
+  },
 
-  { name: "Dreams - Exeter", stock: 70 },
+  {
+    name: "Tesco - Holyhead",
+    stock: 70,
+    region: "Wales",
+    company: "Tesco"
+  },
 
-  { name: "Homebase - Exeter", stock: 70 },
-  { name: "Homebase - Plymouth", stock: 70 },
+  {
+    name: "Tesco - Porthmadog",
+    stock: 70,
+    region: "Wales",
+    company: "Tesco"
+  },
 
-  { name: "McDonald's - London", stock: 70 },
+  {
+    name: "Tesco - Aberystwyth",
+    stock: 70,
+    region: "Wales",
+    company: "Tesco"
+  },
 
-  { name: "Hawes Marketplace - Hawes", stock: 70 }
+  {
+    name: "Tesco - Folkestone",
+    stock: 70,
+    region: "South England",
+    company: "Tesco"
+  },
+
+  {
+    name: "Tesco - London",
+    stock: 70,
+    region: "South England",
+    company: "Tesco"
+  },
+
+  {
+    name: "Tesco - Chelmsford",
+    stock: 70,
+    region: "South England",
+    company: "Tesco"
+  },
+
+  {
+    name: "Tesco - Norwich",
+    stock: 70,
+    region: "South England",
+    company: "Tesco"
+  },
+
+  {
+    name: "Tesco - Ullapool",
+    stock: 70,
+    region: "Scotland",
+    company: "Tesco"
+  },
+
+  {
+    name: "Tesco - Stornoway",
+    stock: 70,
+    region: "Scotland",
+    company: "Tesco"
+  },
+
+  // ALDI
+
+  {
+    name: "Aldi - Porthmadog",
+    stock: 70,
+    region: "Wales",
+    company: "Aldi"
+  },
+
+  {
+    name: "Aldi - Waterford",
+    stock: 70,
+    region: "Ireland",
+    company: "Aldi"
+  },
+
+  {
+    name: "Aldi - Sheffield",
+    stock: 70,
+    region: "North England",
+    company: "Aldi"
+  },
+
+  {
+    name: "Aldi - Newcastle",
+    stock: 70,
+    region: "North England",
+    company: "Aldi"
+  },
+
+  {
+    name: "Aldi - London",
+    stock: 70,
+    region: "South England",
+    company: "Aldi"
+  },
+
+  // LIDL
+
+  {
+    name: "Lidl - Perth",
+    stock: 70,
+    region: "Scotland",
+    company: "Lidl"
+  },
+
+  {
+    name: "Lidl - Edinburgh",
+    stock: 70,
+    region: "Scotland",
+    company: "Lidl"
+  },
+
+  {
+    name: "Lidl - Waterford",
+    stock: 70,
+    region: "Ireland",
+    company: "Lidl"
+  },
+
+  {
+    name: "Lidl - Swansea",
+    stock: 70,
+    region: "Wales",
+    company: "Lidl"
+  },
+
+  {
+    name: "Lidl - Southampton",
+    stock: 70,
+    region: "South England",
+    company: "Lidl"
+  },
+
+  {
+    name: "Lidl - Canterbury",
+    stock: 70,
+    region: "South England",
+    company: "Lidl"
+  },
+
+  {
+    name: "Lidl - Antrim",
+    stock: 70,
+    region: "Northern Ireland",
+    company: "Lidl"
+  }
 
 ];
 
@@ -231,7 +373,9 @@ const stores = [
 // STATUS
 // ======================================================
 
-function getStatus(stock) {
+function getStatus(
+  stock
+) {
 
   if (stock <= 30)
     return "🔴";
@@ -244,6 +388,134 @@ function getStatus(stock) {
 }
 
 // ======================================================
+// REGION MAPPING
+// ======================================================
+
+function getRdcRegion(
+  rdc
+) {
+
+  if (
+    rdc.includes(
+      "Aberdeen"
+    ) ||
+    rdc.includes(
+      "Ullapool"
+    ) ||
+    rdc.includes(
+      "Oban"
+    ) ||
+    rdc.includes(
+      "Fort William"
+    )
+  ) {
+
+    return "Scotland";
+
+  }
+
+  if (
+    rdc.includes(
+      "Newry"
+    ) ||
+    rdc.includes(
+      "Ballymena"
+    )
+  ) {
+
+    return
+      "Northern Ireland";
+
+  }
+
+  if (
+    rdc.includes(
+      "Wexford"
+    ) ||
+    rdc.includes(
+      "Waterford"
+    ) ||
+    rdc.includes(
+      "Sligo"
+    )
+  ) {
+
+    return "Ireland";
+
+  }
+
+  if (
+    rdc.includes(
+      "Swansea"
+    )
+  ) {
+
+    return "Wales";
+
+  }
+
+  return
+    "South England";
+
+}
+
+// ======================================================
+// SMART DISPATCH
+// ======================================================
+
+function getSmartStore(
+  rdc
+) {
+
+  const region =
+    getRdcRegion(
+      rdc
+    );
+
+  let regionalStores =
+    stores.filter(
+      store =>
+        store.region ===
+        region
+    );
+
+  // fallback
+
+  if (
+    regionalStores.length === 0
+  ) {
+
+    regionalStores =
+      [...stores];
+
+  }
+
+  // prioritise low stock
+
+  regionalStores.sort(
+    (a, b) =>
+      a.stock -
+      b.stock
+  );
+
+  // weighted low-stock choice
+
+  const topPriority =
+    regionalStores.slice(
+      0,
+      3
+    );
+
+  return topPriority[
+    Math.floor(
+      Math.random() *
+      topPriority.length
+    )
+  ];
+
+}
+
+// ======================================================
 // GROUP STORES
 // ======================================================
 
@@ -251,32 +523,34 @@ function groupStores() {
 
   const grouped = {};
 
-  stores.forEach(store => {
+  stores.forEach(
+    store => {
 
-    const company =
-      store.name.split(
-        " - "
-      )[0];
+      if (
+        !grouped[
+          store.company
+        ]
+      ) {
 
-    if (!grouped[company]) {
+        grouped[
+          store.company
+        ] = [];
 
-      grouped[company] =
-        [];
+      }
+
+      grouped[
+        store.company
+      ].push(store);
 
     }
-
-    grouped[
-      company
-    ].push(store);
-
-  });
+  );
 
   return grouped;
 
 }
 
 // ======================================================
-// UPDATE STOCK BOARD
+// STOCK BOARD
 // ======================================================
 
 async function updateStockBoard() {
@@ -288,7 +562,8 @@ async function updateStockBoard() {
         STOCK_CHANNEL_ID
       );
 
-    if (!channel) return;
+    if (!channel)
+      return;
 
     const grouped =
       groupStores();
@@ -296,23 +571,25 @@ async function updateStockBoard() {
     let critical = 0;
     let low = 0;
 
-    stores.forEach(store => {
+    stores.forEach(
+      store => {
 
-      if (
-        store.stock <= 30
-      ) {
+        if (
+          store.stock <= 30
+        ) {
 
-        critical++;
+          critical++;
 
-      } else if (
-        store.stock <= 60
-      ) {
+        } else if (
+          store.stock <= 60
+        ) {
 
-        low++;
+          low++;
+
+        }
 
       }
-
-    });
+    );
 
     let content =
 `╔════════════════════════╗
@@ -325,8 +602,10 @@ async function updateStockBoard() {
 
 `;
 
-    Object.keys(grouped)
-      .forEach(company => {
+    Object.keys(
+      grouped
+    ).forEach(
+      company => {
 
         content +=
 `📦 ${company}
@@ -337,7 +616,10 @@ async function updateStockBoard() {
           grouped[
             company
           ].sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               a.stock -
               b.stock
           );
@@ -373,31 +655,14 @@ async function updateStockBoard() {
 
         content += "\n";
 
-      });
-
-    const now =
-      new Date();
-
-    const time =
-      now.toLocaleTimeString(
-        "en-GB",
-        {
-
-          hour:
-            "2-digit",
-
-          minute:
-            "2-digit"
-
-        }
-      );
-
-    content +=
-`🕒 Updated: ${time}`;
+      }
+    );
 
     const messages =
       await channel.messages.fetch(
-        { limit: 10 }
+        {
+          limit: 10
+        }
       );
 
     const existing =
@@ -421,10 +686,11 @@ async function updateStockBoard() {
 
     }
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.error(
-      "Stock board error:",
       error
     );
 
@@ -445,7 +711,8 @@ async function updateLeaderboard() {
         LEADERBOARD_CHANNEL_ID
       );
 
-    if (!channel) return;
+    if (!channel)
+      return;
 
     const sorted =
       Object.entries(
@@ -513,7 +780,9 @@ async function updateLeaderboard() {
 
     const messages =
       await channel.messages.fetch(
-        { limit: 10 }
+        {
+          limit: 10
+        }
       );
 
     const existing =
@@ -537,10 +806,11 @@ async function updateLeaderboard() {
 
     }
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.error(
-      "Leaderboard error:",
       error
     );
 
@@ -549,62 +819,7 @@ async function updateLeaderboard() {
 }
 
 // ======================================================
-// SMART DISPATCH
-// ======================================================
-
-function getSmartStore(
-  rdc
-) {
-
-  let filtered =
-    [...stores];
-
-  // Scotland RDCs
-
-  if (
-    rdc.includes(
-      "Aberdeen"
-    ) ||
-    rdc.includes(
-      "Ullapool"
-    ) ||
-    rdc.includes(
-      "Oban"
-    )
-  ) {
-
-    filtered =
-      stores.filter(
-        s =>
-          s.name.includes(
-            "Perth"
-          ) ||
-          s.name.includes(
-            "Edinburgh"
-          ) ||
-          s.name.includes(
-            "Ullapool"
-          ) ||
-          s.name.includes(
-            "Stornoway"
-          ) ||
-          s.name.includes(
-            "Dumfries"
-          )
-      );
-
-  }
-
-  return filtered.sort(
-    (a, b) =>
-      a.stock -
-      b.stock
-  )[0];
-
-}
-
-// ======================================================
-// DISPATCH TERMINAL
+// TERMINAL
 // ======================================================
 
 async function createDispatchTerminal() {
@@ -683,7 +898,9 @@ then generate dispatch.
 
     const messages =
       await channel.messages.fetch(
-        { limit: 10 }
+        {
+          limit: 10
+        }
       );
 
     const existing =
@@ -721,10 +938,11 @@ then generate dispatch.
 
     }
 
-  } catch (error) {
+  } catch (
+    error
+  ) {
 
     console.error(
-      "Dispatch terminal error:",
       error
     );
 
@@ -733,32 +951,39 @@ then generate dispatch.
 }
 
 // ======================================================
-// STOCK DEPLETION
+// STOCK DRAIN
 // ======================================================
 
 setInterval(
+
   async () => {
 
     stores.forEach(
       store => {
 
-        const random =
+        let drain =
           Math.floor(
             Math.random() *
-            10
-          );
+            12
+          ) + 4;
+
+        // city stores drain faster
+
+        if (
+          store.name.includes(
+            "London"
+          )
+        ) {
+
+          drain += 6;
+
+        }
 
         store.stock =
           Math.max(
             0,
-
-            Math.floor(
-              store.stock -
-              (
-                5 +
-                random
-              )
-            )
+            store.stock -
+            drain
           );
 
       }
@@ -967,6 +1192,9 @@ ${jobId}
 🏭 RDC:
 ${rdc}
 
+🌍 REGION:
+${store.region}
+
 🏪 STORE:
 ${store.name}
 
@@ -996,7 +1224,7 @@ IN TRANSIT
 
             interaction,
 
-            "✅ Dispatch generated."
+            "✅ Smart dispatch generated."
 
           );
 
@@ -1156,7 +1384,9 @@ ${driverStats[job.user]}
 
       }
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
 
       console.error(
         "INTERACTION ERROR:",
