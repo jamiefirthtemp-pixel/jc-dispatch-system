@@ -55,15 +55,29 @@ const defaultState = {
     { id: 1, name: "Tesco - London", company: "Tesco", region: "South England", stock: 70 },
     { id: 2, name: "Tesco - Aberdeen", company: "Tesco", region: "Scotland", stock: 70 },
     { id: 3, name: "Tesco - Belfast", company: "Tesco", region: "Northern Ireland", stock: 70 },
-    { id: 4, name: "Aldi - Newcastle", company: "Aldi", region: "North England", stock: 70 },
-    { id: 5, name: "Aldi - London", company: "Aldi", region: "South England", stock: 70 },
-    { id: 6, name: "Lidl - Swansea", company: "Lidl", region: "Wales", stock: 70 },
-    { id: 7, name: "Lidl - Edinburgh", company: "Lidl", region: "Scotland", stock: 70 },
-    { id: 8, name: "Sainsbury's - Exeter", company: "Sainsbury's", region: "South England", stock: 70 },
-    { id: 9, name: "IKEA - Croydon", company: "IKEA", region: "South England", stock: 70 },
-    { id: 10, name: "Homebase - Plymouth", company: "Homebase", region: "South England", stock: 70 },
-    { id: 11, name: "Dreams - Exeter", company: "Dreams", region: "South England", stock: 70 },
-    { id: 12, name: "McDonald's - London", company: "McDonald's", region: "South England", stock: 70 }
+    { id: 4, name: "Tesco - Antrim", company: "Tesco", region: "Northern Ireland", stock: 70 },
+    { id: 5, name: "Tesco - Dumfries", company: "Tesco", region: "Scotland", stock: 70 },
+    { id: 6, name: "Tesco - Holyhead", company: "Tesco", region: "Wales", stock: 70 },
+    { id: 7, name: "Tesco - Porthmadog", company: "Tesco", region: "Wales", stock: 70 },
+    { id: 8, name: "Tesco - Folkestone", company: "Tesco", region: "South England", stock: 70 },
+    { id: 9, name: "Tesco - Chelmsford", company: "Tesco", region: "South England", stock: 70 },
+    { id: 10, name: "Tesco - Norwich", company: "Tesco", region: "South England", stock: 70 },
+    { id: 11, name: "Tesco - Ullapool", company: "Tesco", region: "Scotland", stock: 70 },
+    { id: 12, name: "Aldi - Newcastle", company: "Aldi", region: "North England", stock: 70 },
+    { id: 13, name: "Aldi - London", company: "Aldi", region: "South England", stock: 70 },
+    { id: 14, name: "Aldi - Waterford", company: "Aldi", region: "Ireland", stock: 70 },
+    { id: 15, name: "Aldi - Sheffield", company: "Aldi", region: "North England", stock: 70 },
+    { id: 16, name: "Lidl - Swansea", company: "Lidl", region: "Wales", stock: 70 },
+    { id: 17, name: "Lidl - Edinburgh", company: "Lidl", region: "Scotland", stock: 70 },
+    { id: 18, name: "Lidl - Southampton", company: "Lidl", region: "South England", stock: 70 },
+    { id: 19, name: "Lidl - Canterbury", company: "Lidl", region: "South England", stock: 70 },
+    { id: 20, name: "Sainsbury's - Exeter", company: "Sainsbury's", region: "South England", stock: 70 },
+    { id: 21, name: "Sainsbury's - Newport", company: "Sainsbury's", region: "Wales", stock: 70 },
+    { id: 22, name: "IKEA - Croydon", company: "IKEA", region: "South England", stock: 70 },
+    { id: 23, name: "IKEA - Dublin", company: "IKEA", region: "Ireland", stock: 70 },
+    { id: 24, name: "Homebase - Plymouth", company: "Homebase", region: "South England", stock: 70 },
+    { id: 25, name: "Dreams - Exeter", company: "Dreams", region: "South England", stock: 70 },
+    { id: 26, name: "McDonald's - London", company: "McDonald's", region: "South England", stock: 70 }
   ]
 };
 
@@ -95,11 +109,25 @@ function saveState() {
 // ======================================================
 
 const rdcs = [
+  "DHL - Ullapool",
+  "DHL - Oban",
   "DHL - Aberdeen",
+  "DHL - Newport",
   "DHL - Portsmouth",
+  "DSV - Newry",
+  "DSV - Wexford",
   "DSV - Waterford",
+  "DSV - Newport",
+  "XPO Logistics - London",
+  "XPO Logistics - Dover",
+  "Stobart/Culina - Sligo",
+  "Stobart/Culina - Ballymena",
+  "Stobart/Culina - Fort William",
+  "Stobart/Culina - Carlisle",
+  "Stobart/Culina - Ullapool",
   "Stobart/Culina - Swansea",
-  "XPO Logistics - London"
+  "Stobart/Culina - Croydon",
+  "Stobart/Culina - Portsmouth"
 ];
 
 // ======================================================
@@ -507,7 +535,7 @@ ${incident.points} Points
 
   await interaction.update({
     content:
-`✅ DELIVERY COMPLETE\n\n🆔 ${dispatchId}\n🏪 ${store.name}\n📦 STOCK: ${store.stock}%`,
+`╔════ DELIVERY COMPLETE ════╗\n\n👤 Driver:\n<@${dispatch.userId}>\n\n🆔 Dispatch:\n${dispatchId}\n\n🏪 Store:\n${store.name}\n\n📦 Updated Stock:\n${store.stock}%\n\n🏆 Reward Delivered:\n${dispatch.points} Points\n\n╚══════════════════════════╝`,
     components: [disabledRow]
   });
 }
