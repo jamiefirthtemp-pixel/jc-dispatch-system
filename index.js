@@ -4,7 +4,6 @@ GatewayIntentBits,
 Events,
 REST,
 Routes,
-SlashCommandBuilder,
 ActionRowBuilder,
 ButtonBuilder,
 ButtonStyle
@@ -14,26 +13,150 @@ const client = new Client({
 intents: [GatewayIntentBits.Guilds]
 });
 
+/* RDCS */
+
+const rdcs = [
+
+{
+company: 'DHL',
+location: 'ULLAPOOL'
+},
+
+{
+company: 'DHL',
+location: 'ABERDEEN'
+},
+
+{
+company: 'DSV',
+location: 'WATERFORD'
+},
+
+{
+company: 'XPO LOGISTICS',
+location: 'LONDON'
+},
+
+{
+company: 'STOBART/CULINA',
+location: 'CARLISLE'
+}
+
+];
+
+/* STORES */
+
 const stores = [
-{ name: 'TESCO - LONDON', stock: 20 },
-{ name: 'LIDL - SWANSEA', stock: 45 },
-{ name: 'ALDI - SHEFFIELD', stock: 80 }
+
+{
+name: 'TESCO',
+location: 'LONDON',
+stock: 20
+},
+
+{
+name: 'TESCO',
+location: 'ULLAPOOL',
+stock: 35
+},
+
+{
+name: 'LIDL',
+location: 'SWANSEA',
+stock: 45
+},
+
+{
+name: 'ALDI',
+location: 'SHEFFIELD',
+stock: 80
+},
+
+{
+name: 'SAINSBURYS',
+location: 'EXETER',
+stock: 25
+}
+
 ];
 
 const activeJobs = {};
 const driverStats = {};
 
-function getLowestStockStore() {
-return [...stores].sort((a, b) => a.stock - b.stock)[0];
+/* DISTANCE MAP */
+
+const distanceMap = {
+
+'ULLAPOOL-ULLAPOOL': 5,
+'ABERDEEN-ULLAPOOL': 320,
+'LONDON-LONDON': 5,
+'CARLISLE-SWANSEA': 420,
+'WATERFORD-EXETER': 310
+
+};
+
+/* FUNCTIONS */
+
+function getTrafficLight(stock) {
+
+if (stock <= 30) {
+return '🔴 LOW';
+}
+
+if (stock <= 60) {
+return '🟡 MEDIUM';
+}
+
+return '🟢 HEALTHY';
+
 }
 
 function generateJobId() {
 return 'J-' + Math.floor(Math.random() * 100000);
 }
 
-function increaseStoreStock(storeName) {
+function getBestJob() {
 
-const store = stores.find(s => s.name === storeName);
+const sortedStores = [...stores]
+.sort((a, b) => a.stock - b.stock);
+
+const store = sortedStores[0];
+
+let bestRdc = rdcs[0];
+
+let shortestDistance = 999999;
+
+rdcs.forEach(rdc => {
+
+const key =
+  rdc.location + '-' + store.location;
+
+const distance =
+  distanceMap[key] || 999999;
+
+if (distance < shortestDistance) {
+
+  shortestDistance = distance;
+  bestRdc = rdc;
+
+}
+
+});
+
+return {
+store,
+rdc: bestRdc,
+distance: shortestDistance
+};
+
+}
+
+function increaseStoreStock(storeName, location) {
+
+const store = stores.find(s =>
+s.name === storeName &&
+s.location === location
+);
 
 if (!store) return;
 
@@ -42,20 +165,6 @@ store.stock += 20;
 if (store.stock > 100) {
 store.stock = 100;
 }
-
-}
-
-function depleteStock() {
-
-stores.forEach(store => {
-
-store.stock -= 10;
-
-if (store.stock < 0) {
-  store.stock = 0;
-}
-
-});
 
 }
 
@@ -76,22 +185,20 @@ const commands = [
 },
 
 {
-  name: 'deplete',
-  description: 'Deplete stock'
-},
-
-{
   name: 'stats',
   description: 'View driver stats'
 }
 
 ];
 
-const rest = new REST({ version: '10' })
-.setToken(process.env.TOKEN);
+const rest = new REST({
+version: '10'
+}).setToken(process.env.TOKEN);
 
 await rest.put(
-Routes.applicationCommands(readyClient.user.id),
+Routes.applicationCommands(
+readyClient.user.id
+),
 { body: commands }
 );
 
@@ -99,155 +206,269 @@ console.log('Commands registered');
 
 });
 
-client.on(Events.InteractionCreate, async (interaction) => {
+client.on(
+Events.InteractionCreate,
+async (interaction) => {
 
 try {
 
-if (interaction.isChatInputCommand()) {
+  if (interaction.isChatInputCommand()) {
 
-  if (interaction.commandName === 'job') {
+    /* JOB */
 
-    if (activeJobs[interaction.user.id]) {
+    if (interaction.commandName === 'job') {
 
-      await interaction.reply({
-        content: 'You already have an active job.',
-        ephemeral: true
-      });
+      if (
+        activeJobs[interaction.user.id]
+      ) {
 
-      return;
-    }
+        await interaction.reply({
+          content:
+            'You already have an active job.',
+          ephemeral: true
+        });
 
-    const store = getLowestStockStore();
+        return;
 
-    const jobId = generateJobId();
+      }
 
-    activeJobs[interaction.user.id] = {
-      jobId: jobId,
-      store: store.name
-    };
+      const result = getBestJob();
 
-    const row = new ActionRowBuilder()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('complete_delivery')
-          .setLabel('COMPLETE DELIVERY')
-          .setStyle(ButtonStyle.Success)
-      );
+      const store = result.store;
+      const rdc = result.rdc;
 
-    await interaction.reply({
-      content:
-        '🚛 JOB GENERATED\n\n' +
-        'Job ID: ' + jobId + '\n' +
-        'Store: ' + store.name + '\n' +
-        'Stock: ' + store.stock + '%',
-      components: [row]
-    });
+      const jobId = generateJobId();
 
-    return;
+      activeJobs[interaction.user.id] = {
 
-  }
+        jobId: jobId,
 
-  if (interaction.commandName === 'stock') {
+        storeName: store.name,
 
-    let message = '📦 STORE STOCK LEVELS\n\n';
+        storeLocation:
+          store.location
 
-    stores.forEach(store => {
-      message += store.name + ': ' + store.stock + '%\n';
-    });
-
-    await interaction.reply({
-      content: message,
-      ephemeral: true
-    });
-
-    return;
-
-  }
-
-  if (interaction.commandName === 'deplete') {
-
-    depleteStock();
-
-    await interaction.reply({
-      content: '⚠️ Stock manually depleted.',
-      ephemeral: true
-    });
-
-    return;
-
-  }
-
-  if (interaction.commandName === 'stats') {
-
-    const stats = driverStats[interaction.user.id];
-
-    const completed = stats
-      ? stats.completedJobs
-      : 0;
-
-    await interaction.reply({
-      content:
-        '📊 DRIVER STATS\n\n' +
-        'Completed Jobs: ' + completed,
-      ephemeral: true
-    });
-
-    return;
-
-  }
-
-}
-
-if (interaction.isButton()) {
-
-  if (interaction.customId === 'complete_delivery') {
-
-    const job = activeJobs[interaction.user.id];
-
-    if (!job) {
-
-      await interaction.reply({
-        content: 'No active job found.',
-        ephemeral: true
-      });
-
-      return;
-
-    }
-
-    increaseStoreStock(job.store);
-
-    if (!driverStats[interaction.user.id]) {
-
-      driverStats[interaction.user.id] = {
-        completedJobs: 0
       };
 
+      const row =
+        new ActionRowBuilder()
+          .addComponents(
+
+            new ButtonBuilder()
+              .setCustomId(
+                'complete_delivery'
+              )
+              .setLabel(
+                'COMPLETE DELIVERY'
+              )
+              .setStyle(
+                ButtonStyle.Success
+              )
+
+          );
+
+      await interaction.reply({
+
+        content:
+
+          '🚛 JC LOGISTICS DISPATCH\n\n' +
+
+          'Job ID: ' +
+          jobId + '\n\n' +
+
+          'RDC:\n' +
+          rdc.company +
+          ' - ' +
+          rdc.location +
+
+          '\n\nSTORE:\n' +
+
+          store.name +
+          ' - ' +
+          store.location +
+
+          '\n\nSTOCK:\n' +
+
+          getTrafficLight(
+            store.stock
+          ) +
+
+          ' (' +
+          store.stock +
+          '%)' +
+
+          '\n\nDISTANCE:\n' +
+
+          result.distance +
+          ' km',
+
+        components: [row]
+
+      });
+
+      return;
+
     }
 
-    driverStats[interaction.user.id].completedJobs += 1;
+    /* STOCK */
 
-    delete activeJobs[interaction.user.id];
+    if (
+      interaction.commandName ===
+      'stock'
+    ) {
 
-    await interaction.reply({
-      content:
-        '✅ DELIVERY COMPLETED\n\n' +
-        'Stock increased for: ' + job.store,
-      ephemeral: true
-    });
+      let message =
+        '📦 STORE STOCK LEVELS\n\n';
 
-    return;
+      stores.forEach(store => {
+
+        message +=
+
+          store.name +
+          ' - ' +
+          store.location +
+
+          ' | ' +
+
+          getTrafficLight(
+            store.stock
+          ) +
+
+          ' (' +
+          store.stock +
+          '%)\n';
+
+      });
+
+      await interaction.reply({
+
+        content: message,
+        ephemeral: true
+
+      });
+
+      return;
+
+    }
+
+    /* STATS */
+
+    if (
+      interaction.commandName ===
+      'stats'
+    ) {
+
+      const stats =
+        driverStats[
+          interaction.user.id
+        ];
+
+      const completed =
+        stats
+          ? stats.completedJobs
+          : 0;
+
+      await interaction.reply({
+
+        content:
+
+          '📊 DRIVER STATS\n\n' +
+
+          'Completed Jobs: ' +
+          completed,
+
+        ephemeral: true
+
+      });
+
+      return;
+
+    }
 
   }
 
-}
+  /* BUTTONS */
+
+  if (interaction.isButton()) {
+
+    if (
+      interaction.customId ===
+      'complete_delivery'
+    ) {
+
+      const job =
+        activeJobs[
+          interaction.user.id
+        ];
+
+      if (!job) {
+
+        await interaction.reply({
+
+          content:
+            'No active job found.',
+
+          ephemeral: true
+
+        });
+
+        return;
+
+      }
+
+      increaseStoreStock(
+        job.storeName,
+        job.storeLocation
+      );
+
+      if (
+        !driverStats[
+          interaction.user.id
+        ]
+      ) {
+
+        driverStats[
+          interaction.user.id
+        ] = {
+
+          completedJobs: 0
+
+        };
+
+      }
+
+      driverStats[
+        interaction.user.id
+      ].completedJobs += 1;
+
+      delete activeJobs[
+        interaction.user.id
+      ];
+
+      await interaction.reply({
+
+        content:
+
+          '✅ DELIVERY COMPLETED',
+
+        ephemeral: true
+
+      });
+
+      return;
+
+    }
+
+  }
 
 } catch (error) {
 
-console.log(error);
+  console.log(error);
 
 }
 
-});
+}
+
+);
 
 client.login(process.env.TOKEN);
