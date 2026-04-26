@@ -32,7 +32,6 @@ const ACTIVE_JOBS_CHANNEL_ID = "1497756268847304734";
 const DRIVER_STATS_CHANNEL_ID = "1497749336321429534";
 const LEADERBOARD_CHANNEL_ID = "1497941626260295803";
 const ALERTS_CHANNEL_ID = "1497948012603904000";
-const ALLOWED_GUILD_ID = "1492667732733198336";
 
 const DATA_FILE = "./state.json";
 
@@ -927,7 +926,7 @@ async function registerCommands() {
   const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
   await rest.put(
-    Routes.applicationCommands(process.env.CLIENT_ID),
+    Routes.applicationCommands("1497676061083697313"),
     { body: commands }
   );
 }
@@ -936,7 +935,7 @@ async function registerCommands() {
 // READY
 // ======================================================
 
-client.once("clientReady", async () => {
+client.once("ready", async () => {
   console.log(`Online: ${client.user.tag}`);
 
   await registerCommands();
@@ -950,9 +949,6 @@ client.once("clientReady", async () => {
 // ======================================================
 
 client.on("interactionCreate", async interaction => {
-    if (interaction.guildId !== ALLOWED_GUILD_ID) {
-    return;
-  }
   try {
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "alert") {
@@ -1099,15 +1095,5 @@ ${incident.pickupRdc}
 // ======================================================
 // LOGIN
 // ======================================================
-client.on("guildCreate", async guild => {
 
-  if (guild.id !== ALLOWED_GUILD_ID) {
-
-    console.log(`Unauthorized server detected: ${guild.name}`);
-
-    await guild.leave();
-
-  }
-
-});
 client.login(process.env.TOKEN);
