@@ -229,24 +229,60 @@ function getDriverRank(points) {
 function getAchievements(profile) {
   const achievements = [];
 
-  if (profile.deliveries >= 25) {
+  // ==================================================
+  // DELIVERIES
+  // ==================================================
+
+  if (profile.deliveries >= 500) {
+    achievements.push("👑 Supply Chain Legend");
+  } else if (profile.deliveries >= 250) {
+    achievements.push("🏆 Network Carrier");
+  } else if (profile.deliveries >= 100) {
+    achievements.push("🚛 Logistics Veteran");
+  } else if (profile.deliveries >= 50) {
+    achievements.push("🚚 Freight Operator");
+  } else if (profile.deliveries >= 10) {
     achievements.push("📦 Delivery Runner");
   }
 
-  if (profile.deliveries >= 100) {
-    achievements.push("🚛 Logistics Veteran");
+  // ==================================================
+  // URGENT CONTRACTS
+  // ==================================================
+
+  if (profile.urgentContracts >= 100) {
+    achievements.push("☢ Network Stabilizer");
+  } else if (profile.urgentContracts >= 50) {
+    achievements.push("🔥 Emergency Specialist");
+  } else if (profile.urgentContracts >= 25) {
+    achievements.push("⚠ Crisis Handler");
+  } else if (profile.urgentContracts >= 5) {
+    achievements.push("🚨 First Responder");
   }
 
-  if (profile.urgentContracts >= 10) {
-    achievements.push("🚨 Emergency Responder");
+  // ==================================================
+  // FAILED STORE RECOVERIES
+  // ==================================================
+
+  if (profile.failedRecoveries >= 25) {
+    achievements.push("🏥 Infrastructure Protector");
+  } else if (profile.failedRecoveries >= 10) {
+    achievements.push("🩺 Regional Recovery Unit");
+  } else if (profile.failedRecoveries >= 1) {
+    achievements.push("💀 Store Saver");
   }
 
-  if (profile.failedRecoveries >= 3) {
-    achievements.push("💀 Failed Store Savior");
-  }
+  // ==================================================
+  // COMPANY SPECIALIZATION
+  // ==================================================
 
-  if (profile.favoriteCompany === "Tesco") {
-    achievements.push("🏢 Tesco Specialist");
+  for (const [company, amount] of Object.entries(profile.companies)) {
+    if (amount >= 100) {
+      achievements.push(`👑 ${company} Elite Operator`);
+    } else if (amount >= 50) {
+      achievements.push(`🏢 ${company} Specialist`);
+    } else if (amount >= 25) {
+      achievements.push(`📦 ${company} Support Driver`);
+    }
   }
 
   return achievements;
