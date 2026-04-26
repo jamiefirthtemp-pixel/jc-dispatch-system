@@ -43,6 +43,7 @@ const INCIDENT_COOLDOWN_MS = 1000 * 60 * 5;
 // ======================================================
 
 const defaultState = {
+  presentationVersion: 2,
   selectedRdc: {},
   activeDrivers: {},
   driverStats: {},
@@ -236,7 +237,11 @@ async function updateStockBoard() {
     grouped[store.company].push(store);
   }
 
-  let content = `╔════════════════════╗\n   JC LOGISTICS\n    STOCK BOARD\n╚════════════════════╝\n`;
+  let content = `╔════════════════════════════╗
+      JC LOGISTICS
+       LIVE STOCK BOARD
+╚════════════════════════════╝
+`;
 
   const activeIncidents = state.incidents.filter(i => i.status === "OPEN");
 
@@ -376,9 +381,36 @@ async function createDispatch({
 
   await channel.send({
     content:
-`🚚 ACTIVE DISPATCH\n\n👤 DRIVER:\n<@${userId}>\n\n🆔 DISPATCH:\n${dispatchId}\n\n📦 TYPE:\n${jobType.name}\n\n🏪 STORE:\n${store.name}\n\n⚠ PRIORITY:\n${jobType.priority}\n\n📈 STOCK IMPACT:\n+${jobType.boost}%\n\n🏆 REWARD:\n${jobType.points} points`,
+`╔════ ACTIVE DISPATCH ════╗
+
+🚚 Dispatch: ${dispatchId}
+👤 Driver: <@${userId}>
+
+🏪 Destination:
+${store.name}
+
+📦 Cargo:
+${jobType.name}
+
+⚠ Priority:
+${jobType.priority}
+
+📈 Recovery Impact:
++${jobType.boost}% Stock
+
+🏆 Reward:
+${jobType.points} Points
+
+📌 STATUS: IN TRANSIT
+
+╚═════════════════════════╝`,\n\n👤 DRIVER:\n<@${userId}>\n\n🆔 DISPATCH:\n${dispatchId}\n\n📦 TYPE:\n${jobType.name}\n\n🏪 STORE:\n${store.name}\n\n⚠ PRIORITY:\n${jobType.priority}\n\n📈 STOCK IMPACT:\n+${jobType.boost}%\n\n🏆 REWARD:\n${jobType.points} points`,
     components: [row]
   });
+
+  incident.messageId = sentMessage.id;
+  incident.channelId = sentMessage.channelId;
+
+  saveState();
 }
 
 async function completeDispatch(dispatchId, interaction) {
@@ -408,6 +440,36 @@ async function completeDispatch(dispatchId, interaction) {
     if (incident) {
       incident.status = "RESOLVED";
       incident.resolvedAt = Date.now();
+
+      if (incident.channelId && incident.messageId) {
+        try {
+          const alertChannel = await client.channels.fetch(incident.channelId);
+          const alertMessage = await alertChannel.messages.fetch(incident.messageId);
+
+          await alertMessage.edit({
+            content:
+`╔════════ INCIDENT RESOLVED ════════╗
+
+✅ ${incident.title}
+🏪 ${store.name}
+
+👤 Resolved By:
+<@${dispatch.userId}>
+
+📦 Stock Restored To:
+${store.stock}%
+
+🏆 Reward Delivered:
+${incident.points} Points
+
+📌 STATUS: RESOLVED
+🆔 ${incident.id}
+
+╚══════════════════════════════════╝`,
+            components: []
+          });
+        } catch {}
+      }
     }
   }
 
@@ -463,12 +525,16 @@ async function createIncident(manual = false) {
     storeId: store.id,
     status: "OPEN",
     assignedTo: null,
+    messageId: null,
+    channelId: null,
     createdAt: now,
     expiresAt: now + INCIDENT_EXPIRY_MS
   };
 
   state.incidents.push(incident);
   state.lastIncidentAt = now;
+
+  saveState();
 
   saveState();
 
@@ -483,11 +549,30 @@ async function createIncident(manual = false) {
       .setStyle(ButtonStyle.Danger)
   );
 
-  await channel.send({
+  const sentMessage = await channel.send({
     content:
-`🚨 SUPPLY CHAIN INCIDENT\n\n🆔 ${incident.id}\n\n⚠ INCIDENT:\n${scenario.title}\n\n🏪 STORE:\n${store.name}\n\n📉 IMPACT:\n${scenario.description}\n\n🔥 SEVERITY:\n${scenario.severity}\n\n📦 STOCK NOW:\n${store.stock}%\n\n🏆 REWARD:\n${scenario.points} points`,
+`╔════════ INCIDENT ALERT ════════╗
+
+🚨 ${scenario.title}
+🏪 ${store.name}
+🔥 Severity: ${scenario.severity}
+
+📉 ${scenario.description}
+📦 Stock Reduced To: ${store.stock}%
+
+🏆 Response Reward: ${scenario.points} Points
+
+📌 STATUS: OPEN
+🆔 ${incident.id}
+
+╚══════════════════════════════╝`,\n\n🆔 ${incident.id}\n\n⚠ INCIDENT:\n${scenario.title}\n\n🏪 STORE:\n${store.name}\n\n📉 IMPACT:\n${scenario.description}\n\n🔥 SEVERITY:\n${scenario.severity}\n\n📦 STOCK NOW:\n${store.stock}%\n\n🏆 REWARD:\n${scenario.points} points`,
     components: [row]
   });
+
+  incident.messageId = sentMessage.id;
+  incident.channelId = sentMessage.channelId;
+
+  saveState();
 }
 
 function cleanupIncidents() {
@@ -653,6 +738,34 @@ client.on("interactionCreate", async interaction => {
         incident.assignedTo = interaction.user.id;
         incident.status = "ASSIGNED";
 
+        if (incident.channelId && incident.messageId) {
+          try {
+            const alertChannel = await client.channels.fetch(incident.channelId);
+            const alertMessage = await alertChannel.messages.fetch(incident.messageId);
+
+            const storeData = state.stores.find(s => s.id === incident.storeId);
+
+            await alertMessage.edit({
+              content:
+`╔════════ INCIDENT ALERT ════════╗
+
+🚨 ${incident.title}
+🏪 ${storeData.name}
+🔥 Severity: ${incident.severity}
+
+👤 Assigned To:
+<@${interaction.user.id}>
+
+🏆 Reward: ${incident.points} Points
+
+📌 STATUS: ASSIGNED
+🆔 ${incident.id}
+
+╚══════════════════════════════╝`
+            });
+          } catch {}
+        }
+
         const store = state.stores.find(s => s.id === incident.storeId);
 
         await createDispatch({
@@ -686,9 +799,3 @@ client.on("interactionCreate", async interaction => {
     console.error(error);
   }
 });
-
-// ======================================================
-// LOGIN
-// ======================================================
-
-client.login(process.env.TOKEN);
