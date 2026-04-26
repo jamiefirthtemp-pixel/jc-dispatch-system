@@ -7,14 +7,15 @@ Routes,
 EmbedBuilder,
 ActionRowBuilder,
 ButtonBuilder,
-ButtonStyle
+ButtonStyle,
+StringSelectMenuBuilder
 } = require('discord.js');
 
 const client = new Client({
 intents: [GatewayIntentBits.Guilds]
 });
 
-/* CHANNEL IDS */
+/* CHANNELS */
 
 const DISPATCH_CHANNEL_ID = '1497756268847304734';
 const STOCK_CHANNEL_ID = '1497749476234760342';
@@ -23,30 +24,11 @@ const STOCK_CHANNEL_ID = '1497749476234760342';
 
 const rdcs = [
 
-{
-company: 'DHL',
-location: 'ULLAPOOL'
-},
-
-{
-company: 'DHL',
-location: 'ABERDEEN'
-},
-
-{
-company: 'DSV',
-location: 'WATERFORD'
-},
-
-{
-company: 'XPO LOGISTICS',
-location: 'LONDON'
-},
-
-{
-company: 'STOBART/CULINA',
-location: 'CARLISLE'
-}
+{ id: 'dhl_ullapool', name: 'DHL', location: 'ULLAPOOL' },
+{ id: 'dhl_aberdeen', name: 'DHL', location: 'ABERDEEN' },
+{ id: 'dsv_waterford', name: 'DSV', location: 'WATERFORD' },
+{ id: 'xpo_london', name: 'XPO LOGISTICS', location: 'LONDON' },
+{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' }
 
 ];
 
@@ -54,135 +36,66 @@ location: 'CARLISLE'
 
 const stores = [
 
-{
-name: 'TESCO',
-location: 'LONDON',
-stock: 20
-},
+{ name: 'TESCO', location: 'LONDON', stock: 20 },
+{ name: 'TESCO', location: 'ULLAPOOL', stock: 35 },
+{ name: 'TESCO', location: 'NORWICH', stock: 40 },
 
-{
-name: 'TESCO',
-location: 'ULLAPOOL',
-stock: 35
-},
+{ name: 'LIDL', location: 'SWANSEA', stock: 45 },
+{ name: 'LIDL', location: 'EDINBURGH', stock: 30 },
+{ name: 'LIDL', location: 'SOUTHAMPTON', stock: 25 },
 
-{
-name: 'LIDL',
-location: 'SWANSEA',
-stock: 45
-},
+{ name: 'ALDI', location: 'SHEFFIELD', stock: 80 },
+{ name: 'ALDI', location: 'LONDON', stock: 15 },
 
-{
-name: 'ALDI',
-location: 'SHEFFIELD',
-stock: 80
-},
+{ name: 'SAINSBURYS', location: 'EXETER', stock: 25 },
+{ name: 'SAINSBURYS', location: 'NEWPORT', stock: 50 },
 
-{
-name: 'SAINSBURYS',
-location: 'EXETER',
-stock: 25
-}
+{ name: 'TESCO', location: 'BELFAST', stock: 20 },
+{ name: 'TESCO', location: 'DUBLIN', stock: 55 }
 
 ];
 
 const activeJobs = {};
 const driverStats = {};
 
-const distanceMap = {
-
-'ULLAPOOL-ULLAPOOL': 5,
-'ABERDEEN-ULLAPOOL': 320,
-'LONDON-LONDON': 5,
-'CARLISLE-SWANSEA': 420,
-'WATERFORD-EXETER': 310
-
-};
-
 /* FUNCTIONS */
 
-function getTrafficLight(stock) {
+function getTraffic(stock) {
 
-if (stock <= 30) {
-return '🔴 LOW';
-}
-
-if (stock <= 60) {
-return '🟡 MEDIUM';
-}
+if (stock <= 30) return '🔴 LOW';
+if (stock <= 60) return '🟡 MEDIUM';
 
 return '🟢 HEALTHY';
 
 }
 
-function getEmbedColor(stock) {
+function getColor(stock) {
 
-if (stock <= 30) {
-return 0xff0000;
-}
-
-if (stock <= 60) {
-return 0xffcc00;
-}
+if (stock <= 30) return 0xff0000;
+if (stock <= 60) return 0xffcc00;
 
 return 0x00cc66;
 
 }
 
 function generateJobId() {
-return 'J-' + Math.floor(Math.random() * 100000);
-}
 
-function getBestJob() {
-
-const sortedStores =
-[...stores].sort(
-(a, b) => a.stock - b.stock
-);
-
-const store = sortedStores[0];
-
-let bestRdc = rdcs[0];
-
-let shortestDistance = 999999;
-
-rdcs.forEach(rdc => {
-
-const key =
-  rdc.location +
-  '-' +
-  store.location;
-
-const distance =
-  distanceMap[key] || 999999;
-
-if (distance < shortestDistance) {
-
-  shortestDistance = distance;
-  bestRdc = rdc;
+return 'J-' +
+Math.floor(Math.random() * 100000);
 
 }
 
-});
+function getLowestStockStore() {
 
-return {
-
-store,
-rdc: bestRdc,
-distance: shortestDistance
-
-};
+return [...stores]
+.sort((a, b) => a.stock - b.stock)[0];
 
 }
 
-function increaseStoreStock(
-storeName,
-location
-) {
+function increaseStock(name, location) {
 
-const store = stores.find(
-s =>
-s.name === storeName &&
+const store = stores.find(s =>
+s.name === name &&
 s.location === location
 );
 
@@ -196,6 +109,20 @@ store.stock = 100;
 
 }
 
+function decreaseStock() {
+
+stores.forEach(store => {
+
+store.stock -= 5;
+
+if (store.stock < 0) {
+  store.stock = 0;
+}
+
+});
+
+}
+
 async function updateStockBoard() {
 
 const channel =
@@ -205,16 +132,15 @@ STOCK_CHANNEL_ID
 
 if (!channel) return;
 
-const embed =
-new EmbedBuilder()
+const embed = new EmbedBuilder()
 
-  .setTitle(
-    '📦 LIVE STOCK CONTROL BOARD'
-  )
+.setTitle(
+  '📦 LIVE STOCK CONTROL BOARD'
+)
 
-  .setColor(0x0099ff)
+.setColor(0x0099ff)
 
-  .setTimestamp();
+.setTimestamp();
 
 stores.forEach(store => {
 
@@ -226,10 +152,7 @@ embed.addFields({
     store.location,
 
   value:
-    getTrafficLight(
-      store.stock
-    ) +
-
+    getTraffic(store.stock) +
     ' (' +
     store.stock +
     '%)',
@@ -247,9 +170,7 @@ limit: 10
 
 const existing =
 messages.find(
-m =>
-m.author.id ===
-client.user.id
+m => m.author.id === client.user.id
 );
 
 if (existing) {
@@ -268,6 +189,18 @@ await channel.send({
 
 }
 
+/* AUTO STOCK DEPLETION */
+
+setInterval(() => {
+
+decreaseStock();
+
+updateStockBoard();
+
+}, 300000);
+
+/* READY */
+
 client.once(
 Events.ClientReady,
 async (readyClient) => {
@@ -281,20 +214,12 @@ const commands = [
 
   {
     name: 'job',
-    description:
-      'Generate a delivery job'
-  },
-
-  {
-    name: 'stock',
-    description:
-      'View stock levels'
+    description: 'Generate job'
   },
 
   {
     name: 'stats',
-    description:
-      'View driver stats'
+    description: 'Driver stats'
   }
 
 ];
@@ -325,11 +250,15 @@ updateStockBoard();
 
 );
 
+/* INTERACTIONS */
+
 client.on(
 Events.InteractionCreate,
 async (interaction) => {
 
 try {
+
+  /* COMMANDS */
 
   if (
     interaction.isChatInputCommand()
@@ -351,7 +280,7 @@ try {
         await interaction.reply({
 
           content:
-            '❌ Active delivery already assigned.',
+            '❌ You already have an active delivery.',
 
           ephemeral: true
 
@@ -361,14 +290,135 @@ try {
 
       }
 
-      const result =
-        getBestJob();
+      const menu =
+        new StringSelectMenuBuilder()
 
-      const store =
-        result.store;
+          .setCustomId(
+            'select_rdc'
+          )
+
+          .setPlaceholder(
+            'Select RDC'
+          )
+
+          .addOptions(
+
+            rdcs.map(rdc => ({
+
+              label:
+                rdc.name +
+                ' - ' +
+                rdc.location,
+
+              value: rdc.id
+
+            }))
+
+          );
+
+      const row =
+        new ActionRowBuilder()
+          .addComponents(menu);
+
+      await interaction.reply({
+
+        content:
+          '🏭 Select pickup RDC',
+
+        components: [row],
+
+        ephemeral: true
+
+      });
+
+      return;
+
+    }
+
+    /* STATS */
+
+    if (
+      interaction.commandName ===
+      'stats'
+    ) {
+
+      const stats =
+        driverStats[
+          interaction.user.id
+        ];
+
+      const completed =
+        stats
+          ? stats.completedJobs
+          : 0;
+
+      const embed =
+        new EmbedBuilder()
+
+          .setTitle(
+            '📊 DRIVER PERFORMANCE'
+          )
+
+          .setColor(0x00cc66)
+
+          .addFields(
+
+            {
+
+              name:
+                '👤 DRIVER',
+
+              value:
+                interaction.user.username
+
+            },
+
+            {
+
+              name:
+                '✅ COMPLETED JOBS',
+
+              value:
+                String(completed)
+
+            }
+
+          );
+
+      await interaction.reply({
+
+        embeds: [embed],
+
+        ephemeral: true
+
+      });
+
+      return;
+
+    }
+
+  }
+
+  /* RDC SELECT */
+
+  if (
+    interaction.isStringSelectMenu()
+  ) {
+
+    if (
+      interaction.customId ===
+      'select_rdc'
+    ) {
 
       const rdc =
-        result.rdc;
+        rdcs.find(
+          r =>
+            r.id ===
+            interaction.values[0]
+        );
+
+      const store =
+        getLowestStockStore();
 
       const jobId =
         generateJobId();
@@ -391,11 +441,11 @@ try {
         new EmbedBuilder()
 
           .setTitle(
-            '🚛 JC LOGISTICS DISPATCH SYSTEM'
+            '🚛 JC LOGISTICS DISPATCH'
           )
 
           .setColor(
-            getEmbedColor(
+            getColor(
               store.stock
             )
           )
@@ -417,11 +467,10 @@ try {
             {
 
               name:
-                '🏭 RDC',
+                '🏭 PICKUP RDC',
 
               value:
-
-                rdc.company +
+                rdc.name +
                 '\n' +
                 rdc.location,
 
@@ -435,12 +484,9 @@ try {
                 '🏪 DELIVERY STORE',
 
               value:
-
                 store.name +
                 '\n' +
-                store.location,
-
-              inline: false
+                store.location
 
             },
 
@@ -451,29 +497,14 @@ try {
 
               value:
 
-                getTrafficLight(
+                getTraffic(
                   store.stock
                 ) +
 
                 '\n' +
 
                 store.stock +
-                '%',
-
-              inline: true
-
-            },
-
-            {
-
-              name:
-                '🛣 ROUTE DISTANCE',
-
-              value:
-                result.distance +
-                ' km',
-
-              inline: true
+                '%'
 
             }
 
@@ -509,7 +540,9 @@ try {
 
           );
 
-      await interaction.reply({
+      await interaction.update({
+
+        content: '',
 
         embeds: [embed],
 
@@ -517,14 +550,14 @@ try {
 
       });
 
-      const dispatchChannel =
+      const dispatch =
         await client.channels.fetch(
           DISPATCH_CHANNEL_ID
         );
 
-      if (dispatchChannel) {
+      if (dispatch) {
 
-        await dispatchChannel.send({
+        await dispatch.send({
 
           content:
 
@@ -532,7 +565,11 @@ try {
 
             interaction.user.username +
 
-            ' assigned to ' +
+            '\nRDC: ' +
+
+            rdc.location +
+
+            '\nSTORE: ' +
 
             store.name +
 
@@ -548,105 +585,11 @@ try {
 
     }
 
-    /* STOCK */
-
-    if (
-      interaction.commandName ===
-      'stock'
-    ) {
-
-      await updateStockBoard();
-
-      await interaction.reply({
-
-        content:
-          '📦 Stock board updated.',
-
-        ephemeral: true
-
-      });
-
-      return;
-
-    }
-
-    /* STATS */
-
-    if (
-      interaction.commandName ===
-      'stats'
-    ) {
-
-      const stats =
-        driverStats[
-          interaction.user.id
-        ];
-
-      const completed =
-        stats
-          ? stats.completedJobs
-          : 0;
-
-      const embed =
-        new EmbedBuilder()
-
-          .setTitle(
-            '📊 DRIVER PERFORMANCE'
-          )
-
-          .setColor(
-            0x00cc66
-          )
-
-          .addFields(
-
-            {
-
-              name:
-                '👤 DRIVER',
-
-              value:
-                interaction.user.username,
-
-              inline: false
-
-            },
-
-            {
-
-              name:
-                '✅ COMPLETED JOBS',
-
-              value:
-                String(
-                  completed
-                ),
-
-              inline: false
-
-            }
-
-          );
-
-      await interaction.reply({
-
-        embeds: [embed],
-
-        ephemeral: true
-
-      });
-
-      return;
-
-    }
-
   }
 
   /* BUTTONS */
 
-  if (
-    interaction.isButton()
-  ) {
+  if (interaction.isButton()) {
 
     if (
       interaction.customId ===
@@ -663,7 +606,7 @@ try {
         await interaction.reply({
 
           content:
-            'No active job found.',
+            'No active job.',
 
           ephemeral: true
 
@@ -673,7 +616,7 @@ try {
 
       }
 
-      increaseStoreStock(
+      increaseStock(
 
         job.storeName,
 
