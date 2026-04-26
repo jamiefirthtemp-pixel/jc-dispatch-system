@@ -935,7 +935,7 @@ async function registerCommands() {
 // READY
 // ======================================================
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   console.log(`Online: ${client.user.tag}`);
 
   await registerCommands();
