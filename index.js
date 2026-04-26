@@ -235,10 +235,6 @@ const embed = new EmbedBuilder()
 
 .setColor(0x00cc66)
 
-.setDescription(
-  'Top performing drivers'
-)
-
 .setTimestamp();
 
 const sortedDrivers = Object.values(driverStats)
@@ -622,9 +618,15 @@ try {
 
             .setTimestamp();
 
-        await dispatchChannel.send({
-          embeds: [dispatchEmbed]
-        });
+        const dispatchMessage =
+          await dispatchChannel.send({
+            embeds: [dispatchEmbed]
+          });
+
+        activeJobs[
+          interaction.user.id
+        ].dispatchMessageId =
+          dispatchMessage.id;
 
       }
 
@@ -686,6 +688,72 @@ try {
       driverStats[
         interaction.user.id
       ].completedJobs += 1;
+
+      const dispatchChannel =
+        await client.channels.fetch(
+          DISPATCH_CHANNEL_ID
+        );
+
+      if (
+        dispatchChannel &&
+        job.dispatchMessageId
+      ) {
+
+        const message =
+          await dispatchChannel.messages.fetch(
+            job.dispatchMessageId
+          );
+
+        const completedEmbed =
+          new EmbedBuilder()
+
+            .setTitle(
+              '✅ DELIVERY COMPLETED'
+            )
+
+            .setColor(0x00cc66)
+
+            .addFields(
+
+              {
+                name: '👤 DRIVER',
+                value:
+                  interaction.user.username
+              },
+
+              {
+                name: '📦 JOB ID',
+                value:
+                  job.jobId
+              },
+
+              {
+                name: '🏪 STORE',
+                value:
+                  job.storeName +
+                  ' - ' +
+                  job.storeLocation
+              },
+
+              {
+                name: '📊 STATUS',
+                value:
+                  'DELIVERED'
+              }
+
+            )
+
+            .setTimestamp();
+
+        await message.edit({
+
+          embeds: [completedEmbed],
+
+          components: []
+
+        });
+
+      }
 
       delete activeJobs[
         interaction.user.id
