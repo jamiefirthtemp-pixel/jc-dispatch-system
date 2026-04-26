@@ -10,6 +10,31 @@ const {
 } = require("discord.js");
 
 // ======================================================
+// TEMP EPHEMERAL REPLY
+// ======================================================
+
+async function tempReply(interaction, content, time = 3000) {
+
+  await interaction.reply({
+
+    content,
+    ephemeral: true
+
+  });
+
+  setTimeout(async () => {
+
+    try {
+
+      await interaction.deleteReply();
+
+    } catch (err) {}
+
+  }, time);
+
+}
+
+// ======================================================
 // CLIENT
 // ======================================================
 
@@ -451,16 +476,15 @@ client.on(
           ] =
             interaction.values[0];
 
-          return await interaction.reply({
+          return await tempReply(
 
-            content:
+            interaction,
+
 `✅ RDC Selected
 
-${interaction.values[0]}`,
+${interaction.values[0]}`
 
-            ephemeral: true
-
-          });
+          );
 
         }
 
@@ -489,14 +513,13 @@ ${interaction.values[0]}`,
             ]
           ) {
 
-            return await interaction.reply({
+            return await tempReply(
 
-              content:
-                "❌ You already have an active job.",
+              interaction,
 
-              ephemeral: true
+              "❌ You already have an active job."
 
-            });
+            );
 
           }
 
@@ -507,14 +530,13 @@ ${interaction.values[0]}`,
 
           if (!rdc) {
 
-            return await interaction.reply({
+            return await tempReply(
 
-              content:
-                "❌ Select an RDC first.",
+              interaction,
 
-              ephemeral: true
+              "❌ Select an RDC first."
 
-            });
+            );
 
           }
 
@@ -616,14 +638,13 @@ IN TRANSIT
 
           }
 
-          await interaction.reply({
+          await tempReply(
 
-            content:
-              "✅ Dispatch generated and sent to Active Jobs.",
+            interaction,
 
-            ephemeral: true
+            "✅ Dispatch generated and sent to Active Jobs."
 
-          });
+          );
 
         }
 
@@ -649,14 +670,13 @@ IN TRANSIT
 
           if (!job) {
 
-            return await interaction.reply({
+            return await tempReply(
 
-              content:
-                "❌ Job not found.",
+              interaction,
 
-              ephemeral: true
+              "❌ Job not found."
 
-            });
+            );
 
           }
 
