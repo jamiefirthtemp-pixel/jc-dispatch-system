@@ -15,10 +15,14 @@ const client = new Client({
 intents: [GatewayIntentBits.Guilds]
 });
 
-/* CHANNELS */
+/* CHANNEL IDS */
 
 const DISPATCH_CHANNEL_ID = '1497756268847304734';
 const STOCK_CHANNEL_ID = '1497749476234760342';
+
+/* PUT YOUR DRIVER STATS CHANNEL ID HERE */
+
+const DRIVER_STATS_CHANNEL_ID = 'PUT_DRIVER_STATS_CHANNEL_ID_HERE';
 
 /* RDCS */
 
@@ -41,11 +45,7 @@ const rdcs = [
 { id: 'culina_sligo', name: 'STOBART/CULINA', location: 'SLIGO' },
 { id: 'culina_ballymena', name: 'STOBART/CULINA', location: 'BALLYMENA' },
 { id: 'culina_ftwilliam', name: 'STOBART/CULINA', location: 'FT WILLIAM' },
-{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' },
-{ id: 'culina_ullapool', name: 'STOBART/CULINA', location: 'ULLAPOOL' },
-{ id: 'culina_swansea', name: 'STOBART/CULINA', location: 'SWANSEA' },
-{ id: 'culina_croydon', name: 'STOBART/CULINA', location: 'CROYDON' },
-{ id: 'culina_portsmouth', name: 'STOBART/CULINA', location: 'PORTSMOUTH' }
+{ id: 'culina_carlisle', name: 'STOBART/CULINA', location: 'CARLISLE' }
 
 ];
 
@@ -53,55 +53,26 @@ const rdcs = [
 
 const stores = [
 
-{ name: 'ALDI', location: 'PORTHMADOG', stock: 45 },
-{ name: 'ALDI', location: 'WATERFORD', stock: 55 },
-{ name: 'ALDI', location: 'SHEFFIELD', stock: 70 },
-{ name: 'ALDI', location: 'NEWCASTLE', stock: 35 },
+{ name: 'TESCO', location: 'LONDON', stock: 15 },
+{ name: 'TESCO', location: 'ULLAPOOL', stock: 20 },
+{ name: 'TESCO', location: 'NORWICH', stock: 45 },
+
+{ name: 'LIDL', location: 'SWANSEA', stock: 20 },
+{ name: 'LIDL', location: 'EDINBURGH', stock: 30 },
+
 { name: 'ALDI', location: 'LONDON', stock: 20 },
-
-{ name: 'HAWES MARKETPLACE', location: 'HAWES', stock: 60 },
-
-{ name: 'DREAMS', location: 'EXETER', stock: 50 },
-
-{ name: 'HOMEBASE', location: 'EXETER', stock: 40 },
-{ name: 'HOMEBASE', location: 'PLYMOUTH', stock: 65 },
+{ name: 'ALDI', location: 'NEWCASTLE', stock: 35 },
 
 { name: 'IKEA', location: 'CROYDON', stock: 25 },
-{ name: 'IKEA', location: 'DOUGLAS', stock: 45 },
-{ name: 'IKEA', location: 'DUBLIN', stock: 35 },
 
-{ name: 'LIDL', location: 'PERTH', stock: 60 },
-{ name: 'LIDL', location: 'EDINBURGH', stock: 30 },
-{ name: 'LIDL', location: 'WATERFORD', stock: 40 },
-{ name: 'LIDL', location: 'SWANSEA', stock: 20 },
-{ name: 'LIDL', location: 'SOUTHAMPTON', stock: 55 },
-{ name: 'LIDL', location: 'CANTERBURY', stock: 45 },
-{ name: 'LIDL', location: 'ANTRIM', stock: 25 },
-
-{ name: 'MCDONALDS', location: 'LONDON', stock: 50 },
-
-{ name: 'SAINSBURYS', location: 'EXETER', stock: 35 },
-{ name: 'SAINSBURYS', location: 'NEWPORT', stock: 25 },
-{ name: 'SAINSBURYS', location: 'LISBURN', stock: 40 },
-
-{ name: 'TESCO', location: 'DUBLIN', stock: 30 },
-{ name: 'TESCO', location: 'BELFAST', stock: 45 },
-{ name: 'TESCO', location: 'ANTRIM', stock: 20 },
-{ name: 'TESCO', location: 'DUMFRIES', stock: 50 },
-{ name: 'TESCO', location: 'HOLYHEAD', stock: 35 },
-{ name: 'TESCO', location: 'PORTHMADOG', stock: 25 },
-{ name: 'TESCO', location: 'ABERYSTWYTH', stock: 40 },
-{ name: 'TESCO', location: 'FOLKESTONE', stock: 30 },
-{ name: 'TESCO', location: 'LONDON', stock: 15 },
-{ name: 'TESCO', location: 'CHELMSFORD', stock: 55 },
-{ name: 'TESCO', location: 'NORWICH', stock: 45 },
-{ name: 'TESCO', location: 'ULLAPOOL', stock: 20 },
-{ name: 'TESCO', location: 'STORNOWAY', stock: 35 }
+{ name: 'SAINSBURYS', location: 'EXETER', stock: 35 }
 
 ];
 
 const activeJobs = {};
 const driverStats = {};
+
+/* FUNCTIONS */
 
 function getTraffic(stock) {
 
@@ -109,15 +80,6 @@ if (stock <= 30) return '🔴 LOW';
 if (stock <= 60) return '🟡 MEDIUM';
 
 return '🟢 HEALTHY';
-
-}
-
-function getColor(stock) {
-
-if (stock <= 30) return 0xff0000;
-if (stock <= 60) return 0xffcc00;
-
-return 0x00cc66;
 
 }
 
@@ -166,6 +128,8 @@ if (store.stock < 0) {
 
 }
 
+/* STOCK BOARD */
+
 async function updateStockBoard() {
 
 const channel =
@@ -178,7 +142,7 @@ if (!channel) return;
 const embed = new EmbedBuilder()
 
 .setTitle(
-  '📦 JC LOGISTICS STOCK CONTROL'
+  '📦 JC LOGISTICS STOCK BOARD'
 )
 
 .setColor(0x0099ff)
@@ -196,9 +160,9 @@ embed.addFields({
 
   value:
     getTraffic(store.stock) +
-    ' (' +
+    ' | ' +
     store.stock +
-    '%)',
+    '%',
 
   inline: false
 
@@ -206,11 +170,112 @@ embed.addFields({
 
 });
 
+const messages =
+await channel.messages.fetch({
+limit: 20
+});
+
+const existing =
+messages.find(
+m =>
+m.author.id === client.user.id
+);
+
+if (existing) {
+
+await existing.edit({
+  embeds: [embed]
+});
+
+} else {
+
 await channel.send({
-embeds: [embed]
+  embeds: [embed]
 });
 
 }
+
+}
+
+/* DRIVER STATS BOARD */
+
+async function updateDriverBoard() {
+
+const channel =
+await client.channels.fetch(
+DRIVER_STATS_CHANNEL_ID
+);
+
+if (!channel) return;
+
+const embed = new EmbedBuilder()
+
+.setTitle(
+  '📊 JC LOGISTICS DRIVER STATS'
+)
+
+.setColor(0x00cc66)
+
+.setTimestamp();
+
+const entries =
+Object.entries(driverStats);
+
+if (entries.length === 0) {
+
+embed.setDescription(
+  'No completed jobs yet.'
+);
+
+} else {
+
+entries.forEach(([id, stats]) => {
+
+  embed.addFields({
+
+    name:
+      stats.username,
+
+    value:
+      'Completed Jobs: ' +
+      stats.completedJobs,
+
+    inline: false
+
+  });
+
+});
+
+}
+
+const messages =
+await channel.messages.fetch({
+limit: 20
+});
+
+const existing =
+messages.find(
+m =>
+m.author.id === client.user.id
+);
+
+if (existing) {
+
+await existing.edit({
+  embeds: [embed]
+});
+
+} else {
+
+await channel.send({
+  embeds: [embed]
+});
+
+}
+
+}
+
+/* AUTO STOCK UPDATE */
 
 setInterval(() => {
 
@@ -219,6 +284,8 @@ decreaseStock();
 updateStockBoard();
 
 }, 300000);
+
+/* READY */
 
 client.once(
 Events.ClientReady,
@@ -233,7 +300,7 @@ const commands = [
 
   {
     name: 'job',
-    description: 'Generate delivery job'
+    description: 'Generate job'
   }
 
 ];
@@ -254,11 +321,15 @@ await rest.put(
 
 );
 
-updateStockBoard();
+await updateStockBoard();
+
+await updateDriverBoard();
 
 }
 
 );
+
+/* INTERACTIONS */
 
 client.on(
 Events.InteractionCreate,
@@ -335,8 +406,6 @@ try {
 
       });
 
-      return;
-
     }
 
   }
@@ -387,18 +456,13 @@ try {
             '🚛 JC LOGISTICS DISPATCH'
           )
 
-          .setColor(
-            getColor(
-              store.stock
-            )
-          )
+          .setColor(0x0099ff)
 
           .addFields(
 
             {
               name: '📦 JOB ID',
-              value: jobId,
-              inline: true
+              value: jobId
             },
 
             {
@@ -406,12 +470,11 @@ try {
               value:
                 rdc.name +
                 ' - ' +
-                rdc.location,
-              inline: true
+                rdc.location
             },
 
             {
-              name: '🏪 STORE',
+              name: '🏪 DELIVERY',
               value:
                 store.name +
                 ' - ' +
@@ -423,26 +486,10 @@ try {
               value:
                 getTraffic(
                   store.stock
-                ) +
-                ' (' +
-                store.stock +
-                '%)'
-            },
-
-            {
-              name: '👤 DRIVER',
-              value:
-                interaction.user.username
+                )
             }
 
           )
-
-          .setFooter({
-
-            text:
-              'JC Logistics Dispatch Network'
-
-          })
 
           .setTimestamp();
 
@@ -474,69 +521,6 @@ try {
         components: [row]
 
       });
-
-      const dispatch =
-        await client.channels.fetch(
-          DISPATCH_CHANNEL_ID
-        );
-
-      if (dispatch) {
-
-        const activeEmbed =
-          new EmbedBuilder()
-
-            .setTitle(
-              '🚚 ACTIVE DELIVERY'
-            )
-
-            .setColor(0x0099ff)
-
-            .addFields(
-
-              {
-                name: '👤 DRIVER',
-                value:
-                  interaction.user.username,
-                inline: true
-              },
-
-              {
-                name: '📦 JOB ID',
-                value: jobId,
-                inline: true
-              },
-
-              {
-                name: '🏭 RDC',
-                value:
-                  rdc.location
-              },
-
-              {
-                name: '🏪 DELIVERY',
-                value:
-                  store.name +
-                  ' - ' +
-                  store.location
-              },
-
-              {
-                name: '📊 STATUS',
-                value:
-                  'IN TRANSIT'
-              }
-
-            )
-
-            .setTimestamp();
-
-        await dispatch.send({
-          embeds: [activeEmbed]
-        });
-
-      }
-
-      return;
 
     }
 
@@ -577,11 +561,36 @@ try {
 
       );
 
-      updateStockBoard();
+      if (
+        !driverStats[
+          interaction.user.id
+        ]
+      ) {
+
+        driverStats[
+          interaction.user.id
+        ] = {
+
+          username:
+            interaction.user.username,
+
+          completedJobs: 0
+
+        };
+
+      }
+
+      driverStats[
+        interaction.user.id
+      ].completedJobs += 1;
 
       delete activeJobs[
         interaction.user.id
       ];
+
+      await updateStockBoard();
+
+      await updateDriverBoard();
 
       await interaction.reply({
 
@@ -591,63 +600,6 @@ try {
         ephemeral: true
 
       });
-
-      const dispatch =
-        await client.channels.fetch(
-          DISPATCH_CHANNEL_ID
-        );
-
-      if (dispatch) {
-
-        const completedEmbed =
-          new EmbedBuilder()
-
-            .setTitle(
-              '✅ DELIVERY COMPLETED'
-            )
-
-            .setColor(0x00cc66)
-
-            .addFields(
-
-              {
-                name: '👤 DRIVER',
-                value:
-                  interaction.user.username,
-                inline: true
-              },
-
-              {
-                name: '🏪 STORE',
-                value:
-                  job.storeName +
-                  ' - ' +
-                  job.storeLocation
-              },
-
-              {
-                name: '🏭 RDC',
-                value:
-                  job.rdc
-              },
-
-              {
-                name: '📊 RESULT',
-                value:
-                  'Store stock replenished'
-              }
-
-            )
-
-            .setTimestamp();
-
-        await dispatch.send({
-          embeds: [completedEmbed]
-        });
-
-      }
-
-      return;
 
     }
 
