@@ -358,6 +358,10 @@ async function updateStockBoard() {
   const grouped = {};
 
   for (const store of state.stores) {
+
+  if (Math.random() < 0.35) {
+    continue;
+  }
     if (!grouped[store.company]) {
       grouped[store.company] = [];
     }
@@ -868,7 +872,7 @@ function cleanupIncidents() {
 
 setInterval(async () => {
   for (const store of state.stores) {
-    let drain = Math.floor(Math.random() * 8) + 3;
+    let drain = Math.floor(Math.random() * 3) + 1;
 
     if (
       state.activeCompanyEvent &&
@@ -894,13 +898,7 @@ setInterval(async () => {
     }
   }
 
-  if (!state.activeCompanyEvent && Math.random() < 0.25) {
-    state.activeCompanyEvent = companyEvents[
-      Math.floor(Math.random() * companyEvents.length)
-    ];
-  }
-
-  if (Math.random() < 0.15) {
+  if (Math.random() < 0.03) {
     await createIncident(false);
   }
 
@@ -916,9 +914,17 @@ setInterval(async () => {
 // ======================================================
 
 async function registerCommands() {
-  const commands = [
-    new SlashCommandBuilder()
-      .setName("alert")
+const commands = [
+
+  new SlashCommandBuilder()
+    .setName("alert")
+    .setDescription("Trigger urgent contract")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
+
+  new SlashCommandBuilder()
+    .setName("event")
+    .setDescription("Trigger company event")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
       .setDescription("Trigger urgent contract")
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   ].map(c => c.toJSON());
@@ -952,6 +958,22 @@ client.on("interactionCreate", async interaction => {
   try {
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName === "alert") {
+        if (interaction.commandName === "event") {
+
+  state.activeCompanyEvent =
+    companyEvents[
+      Math.floor(Math.random() * companyEvents.length)
+    ];
+
+  saveState();
+
+  await updateStockBoard();
+
+  return tempReply(
+    interaction,
+    `🏢 Company event triggered:\n\n${state.activeCompanyEvent.title}`
+  );
+}
         await createIncident(true);
         return tempReply(interaction, "🚨 Urgent contract triggered.");
       }
